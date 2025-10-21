@@ -15,6 +15,8 @@ class SO:
     filaTarefasProntas: List[Tarefa]  # Fila de tarefas prontas para execução
     filaTodasTarefas: List[Tarefa]  # Fila com todas as tarefas
     tarefaExecutando: Tarefa  # Tarefa atualmente em execução
+    clock_sistema: int = 0  # Relógio do sistema
+    quantum: int = 0  # Quantum para escalonadores que usam time-slicing
 
     def configurar_sistema(self) -> None:
         """Lê o arquivo de configuração e inicializa o sistema operacional."""
@@ -26,6 +28,8 @@ class SO:
             # Primeira linha: algoritmo_escalonamento; quantum
             tipo_escalonador, quantum = linhas[0].strip().split(";")
             self.criar_escalonador(tipo_escalonador)
+            self.quantum = int(quantum)
+
             lista_eventos: List[Evento] = []
             #próximas linhas são as tarefas
             for linha in linhas[1:]:
