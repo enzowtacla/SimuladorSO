@@ -135,7 +135,6 @@ class SO:
         self.mostrar_situacao_sistema()
         tempo_executando = self.analisar_tarefas(tempo_executando)
         while not all(tarefa.finalizada for tarefa in self.filaTodasTarefas): 
-            print(self.filaTarefasProntas)
 
             self.executar_tarefas()
             self.clock_sistema += 1
@@ -143,8 +142,6 @@ class SO:
             tempo_executando += 1
             self.atualizar_tarefas()
             self.atualizarFilaProntas()
-
-            print(self.filaTarefasProntas)
 
             tempo_executando = self.analisar_tarefas(tempo_executando)
 
