@@ -11,4 +11,4 @@ class EscalonadorPRIOP(Escalonador):  # Contém as informações do escalonador
         # Ordena as tarefas pela prioridade
         sorted_tarefas = sorted(self.tarefas, reverse=True, key=lambda tarefa: tarefa.prioridade)
 
-        return sorted_tarefas.pop(0)  # Retorna a tarefa com maior prioridade
+        sorted_tarefas[0].iniciar_execucao()  # Retorna a tarefa com maior prioridade

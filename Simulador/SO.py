@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Any, Union
+from typing import List, Union
 import os
 
 from Simulador.tarefa import Tarefa, Evento
@@ -12,17 +12,18 @@ from Simulador.escalonadorSRTF import EscalonadorSRTF
 class SO:
     """Representa o sistema operacional que gerencia o escalonamento das tarefas."""
     escalonador: Union[EscalonadorFIFO, EscalonadorPRIOP, EscalonadorSRTF]
-    filaTarefasProntas: List[Tarefa]  # Fila de tarefas prontas para execução
     filaTodasTarefas: List[Tarefa]  # Fila com todas as tarefas
-    tarefaExecutando: Tarefa  # Tarefa atualmente em execução
+    filaTarefasProntas: List[Tarefa]  # Fila com tarefas prontas para execução
     clock_sistema: int = 0  # Relógio do sistema
     quantum: int = 0  # Quantum para escalonadores que usam time-slicing
+    ingresso_fila_prontas: bool = False  # Indica se tarefas ingressaram na fila de prontas recentemente
 
     def configurar_sistema(self) -> None:
         """Lê o arquivo de configuração e inicializa o sistema operacional."""
         if not os.path.exists("config.txt"):
             raise FileNotFoundError("Arquivo de configuração não encontrado.")
 
+        self.limpeza_sistema()
         with open("config.txt", "r") as arquivo:
             linhas = arquivo.readlines()
             # Primeira linha: algoritmo_escalonamento; quantum
@@ -31,6 +32,7 @@ class SO:
             self.quantum = int(quantum)
 
             lista_eventos: List[Evento] = []
+
             #próximas linhas são as tarefas
             for linha in linhas[1:]:
                 campos = linha.strip().split(";")
@@ -39,25 +41,26 @@ class SO:
                 ingresso = int(campos[2])
                 duracao = int(campos[3])
                 prioridade = int(campos[4])
+                
+                self.tempo_total_exec += duracao
 
                 lista_eventos: List[Evento] = []
 
                 for campo in campos[5:]:
-                    sub_campos = campo.strip().split(":")
-                    tipo = sub_campos[0]
+                    if campo.strip(): 
+                        sub_campos = campo.strip().split(":")
+                        tipo = sub_campos[0]
 
-                    if tipo == "IO":
-                        sub_campos_io = sub_campos[1].split("-")
-                        tempo_inicio = int(sub_campos_io[0])
-                        duracao = int(sub_campos_io[1])
-                    elif tipo == "MU" or tipo == "ML": 
-                        tempo_inicio = int(sub_campos[1])
-                        duracao = None
-
-                    instante = tempo_inicio + ingresso
-
-                    evento = Evento(tipo=tipo, instante=instante, duracao=duracao) 
-                    lista_eventos.append(evento)
+                        if tipo == "IO":
+                            sub_campos_io = sub_campos[1].split("-")
+                            tempo_inicio = int(sub_campos_io[0])
+                            duracao_evento = int(sub_campos_io[1])
+                            evento = Evento(tipo=tipo, instante=tempo_inicio, duracao=duracao_evento)
+                            lista_eventos.append(evento)
+                        elif tipo == "MU" or tipo == "ML":
+                            tempo_inicio = int(sub_campos[1])
+                            evento = Evento(tipo=tipo, instante=tempo_inicio, duracao=None)
+                            lista_eventos.append(evento)
 
                 tarefa = Tarefa(
                     id=id,
@@ -87,15 +90,105 @@ class SO:
     def adicionar_tarefa_pronta(self, tarefa: Tarefa) -> None:
         """Adiciona uma tarefa à fila de tarefas prontas."""
         self.filaTarefasProntas.append(tarefa)
+    
+    def remover_tarefa_pronta(self, tarefa: Tarefa) -> None:
+        """Remove uma tarefa da fila de tarefas prontas."""
+        if tarefa in self.filaTarefasProntas:
+            self.filaTarefasProntas.remove(tarefa)
+
+    def limpeza_sistema(self) -> None:
+        """Limpa todas as filas de tarefas."""
+
+        self.filaTodasTarefas.clear()
+        self.filaTarefasProntas.clear()
+        self.clock_sistema = 0
+        self.tempo_total_exec = 0
+
+    def executar_tarefas(self) -> None:
+        """Executa as tarefas na fila de tarefas prontas."""
+        for tarefa in self.filaTodasTarefas:
+            if not tarefa.finalizada:
+                tarefa.executar()
+
+    def atualizar_tarefas(self) -> None:
+        """Atualiza o estado das tarefas com base no relógio do sistema."""
+
+        for tarefa in self.filaTodasTarefas:
+            if (tarefa.finalizada is False):
+                tarefa.atualizar_estado(self.clock_sistema)
+
+    def atualizarFilaProntas(self) -> None:
+        
+        for tarefa in self.filaTodasTarefas:
+            if tarefa.pronta and (tarefa not in self.filaTarefasProntas):
+                self.adicionar_tarefa_pronta(tarefa)
+                self.ingresso_fila_prontas = True
+            
+            elif not tarefa.pronta and (tarefa in self.filaTarefasProntas):
+                self.remover_tarefa_pronta(tarefa)
+                
+
+    def executar(self) -> None:
+        """Inicia a execução do sistema operacional."""
+        tempo_executando = 0
+        self.atualizarFilaProntas()
+        self.mostrar_situacao_sistema()
+        tempo_executando = self.analisar_tarefas(tempo_executando)
+        while not all(tarefa.finalizada for tarefa in self.filaTodasTarefas): 
+            print(self.filaTarefasProntas)
+
+            self.executar_tarefas()
+            self.clock_sistema += 1
+
+            tempo_executando += 1
+            self.atualizar_tarefas()
+            self.atualizarFilaProntas()
+
+            print(self.filaTarefasProntas)
+
+            tempo_executando = self.analisar_tarefas(tempo_executando)
+
+            self.mostrar_situacao_sistema()
+
+    def analisar_tarefas(self, tempo_executando: int) -> int:
+        """Analisa as tarefas após a execução do sistema operacional."""
+ 
+        tarefa_executando = next((tarefa for tarefa in self.filaTodasTarefas if tarefa.executando), None)
+
+        if (len(self.filaTarefasProntas) > 0 and tarefa_executando is None) or self.ingresso_fila_prontas or tempo_executando >= self.quantum:
+            for tarefa in self.filaTodasTarefas:
+                if tarefa.executando:
+                    tarefa.ficar_pronta()
+                    self.remover_tarefa_pronta(tarefa)
+                    self.adicionar_tarefa_pronta(tarefa)
+                    break
+
+            if self.ingresso_fila_prontas:
+                self.ingresso_fila_prontas = False
+                
+            if len(self.filaTarefasProntas) > 0:
+                self.escalonador.escalonar()
+            tempo_executando = 0
+        return tempo_executando
+
+    def mostrar_situacao_sistema(self) -> None:
+        """Mostra a situação atual do sistema operacional."""
+        print(f"Clock = {self.clock_sistema}")
+        print("Tarefas:")
+        for tarefa in self.filaTodasTarefas:
+            print(f"  Tarefa {tarefa.id}: Estado={tarefa.estado}, Tempo Restante={tarefa.t_restante}")
+        print("-" * 40)
 
 if __name__ == "__main__":
     so = SO(
         escalonador=None,
         filaTarefasProntas=[],
         filaTodasTarefas=[],
-        tarefaExecutando=None
     )
     so.configurar_sistema()
 
     for tarefa in so.filaTodasTarefas:
         print(tarefa)
+        tarefa.__post_init__()
+
+    so.executar()

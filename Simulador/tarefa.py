@@ -15,24 +15,56 @@ class Tarefa:   #Contém as informações de cada tarefa
     duracao:  int   # Duração da tarefa
     prioridade: int    # Prioridade da tarefa
     eventos: List[Evento] # Lista de eventos na tarefa
-    estado: str = "pronta" # Estado atual da tarefa: pronta, executando, bloqueada, finalizada
+    evento_bloqueio_atual: Evento = None  # Evento que causou o bloqueio atual
+    estado: str = "aguardando" # Estado atual da tarefa: pronta, executando, bloqueada, finalizada
 
     t_executado: int = 0  # Tempo já executado da tarefa
     t_restante: int = 0    # Tempo restante para ser executado
+    t_bloqueado: int = 0    # Tempo que a tarefa está bloqueada
 
     def __post_init__(self):
-        self.t_restante = self.duracao # Inicializa o tempo restante com a duração total da tarefa, roda automaticamente apos o init da dataclass  
+        self.t_restante = self.duracao
+        if self.ingresso == 0:
+            self.estado = "pronta"
+        else:
+            self.estado = "aguardando"
     
-    def executar(self, quantum: int) -> int:
-        t_executado = min(quantum, self.t_restante) # Executa a tarefa por um quantum de tempo ou pelo tempo restantem, o que for menor
-        self.t_executado += t_executado 
-        self.t_restante -= t_executado
-
+    def atualizar_estado(self, clock: int) -> None:
         if self.t_restante == 0:
-            self.estado = "finalizada" # Sem tempo restante a tarefa terminou
+            self.finalizar()
+        elif self.ingresso == clock and self.estado == "aguardando":
+            self.ficar_pronta()
+        elif self.bloqueada:
 
-        return t_executado # Retorna o tempo que foi executado
+            if self.t_bloqueado >= self.evento_bloqueio_atual.duracao:
+                self.ficar_pronta()
+                self.t_bloqueado = 0
+                print(f"Tarefa {self.id} desbloqueada após I/O.")
+            self.t_bloqueado += 1 
+            print(f"Tarefa {self.id} está bloqueada por {self.t_bloqueado} unidades de tempo.")
+
+    def executar(self) -> None:
+        if self.executando:
+            self.t_restante -= 1
+            self.t_executado += 1
+            for evento in self.eventos:
+                if evento.tipo == "IO" and evento.instante == self.t_executado:
+                    self.bloquear()
+                    self.evento_bloqueio_atual = evento
+                    break  
+
+    def bloquear(self) -> None:
+        self.estado = "bloqueada"
+
+    def ficar_pronta(self) -> None:
+        self.estado = "pronta"
     
+    def iniciar_execucao(self) -> None:
+        self.estado = "executando"
+
+    def finalizar(self) -> None:
+        self.estado = "finalizada"
+
     @property
     def finalizada(self) -> bool:
         return self.estado == "finalizada"

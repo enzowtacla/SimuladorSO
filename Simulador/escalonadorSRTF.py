@@ -11,4 +11,4 @@ class EscalonadorSRTF(Escalonador):  # Contém as informações do escalonador
         # Ordena as tarefas pelo tempo restante]
         sorted_tarefas = sorted(self.tarefas, key=lambda tarefa: tarefa.t_restante)
 
-        return sorted_tarefas.pop(0)  # Retorna a tarefa com menor tempo restante
+        sorted_tarefas[0].iniciar_execucao()  # Retorna a tarefa com menor tempo restante

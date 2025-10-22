@@ -9,5 +9,4 @@ class EscalonadorFIFO(Escalonador):  # Contém as informações do escalonador
             return
         
         # tarefas já ordenadas pq é uma fila
-
-        return self.tarefas.pop(0)  # Retorna a primeira tarefa da fila
+        self.tarefas[0].iniciar_execucao()  # Retorna a primeira tarefa da fila
