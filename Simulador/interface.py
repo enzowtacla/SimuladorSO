@@ -15,32 +15,32 @@ class Interface:
     def __init__(self, root):
         self.root = root
         self.root.title("Simulador de Escalonamento v0.1")
-        self.root.geometry("1000x700")
+        self.root.geometry("1000x800")
 
         self.so = SO(escalonador=None, filaTarefasProntas=[], filaTodasTarefas=[])
         self.config_filepath = "config.txt"  # Caminho padrão
         self.running = False
-        self.tick_scale = 10  # Largura de cada tickn o Gantt (em pixels)
+        self.tick_scale = 10  # Largura de cada tickn   o Gantt (em pixels)
         self.row_height = 30  # Altura de cada linha de tarefa no Gantt
 
         self.setup_gui()
-        self.load_config(self.config_filepath) # Tenta carregar config padrão
+        self.carrega_config(self.config_filepath) # Tenta carregar config padrão
 
     def setup_gui(self):
         # --- Frame de Controles ---
         control_frame = ttk.Frame(self.root, padding=10)
         control_frame.pack(fill='x', side='top')
 
-        self.load_button = ttk.Button(control_frame, text="Carregar Config", command=self.select_config_file)
+        self.load_button = ttk.Button(control_frame, text="Carregar Config", command=self.seleciona_arquivo)
         self.load_button.pack(side='left', padx=5)
 
-        self.reset_button = ttk.Button(control_frame, text="Resetar Simulação", command=self.reset_simulation)
+        self.reset_button = ttk.Button(control_frame, text="Resetar Simulação", command=self.reseta_simulacao)
         self.reset_button.pack(side='left', padx=5)
 
-        self.step_button = ttk.Button(control_frame, text="Executar Passo", command=self.step_gui)
+        self.step_button = ttk.Button(control_frame, text="Executar Passo", command=self.passo)
         self.step_button.pack(side='left', padx=5)
 
-        self.run_button = ttk.Button(control_frame, text="Executar Completo", command=self.run_gui)
+        self.run_button = ttk.Button(control_frame, text="Executar Completo", command=self.executa)
         self.run_button.pack(side='left', padx=5)
         
         self.stop_button = ttk.Button(control_frame, text="Parar", command=self.stop_gui)
@@ -78,35 +78,35 @@ class Interface:
         v_scroll.pack(side='right', fill='y')
         self.gantt_canvas.pack(side='left', fill='both', expand=True)
 
-    def select_config_file(self):
+    def seleciona_arquivo(self):
         filepath = filedialog.askopenfilename(
             title="Selecionar arquivo de configuração",
             filetypes=[("Arquivos de Texto", "*.txt"), ("Todos os arquivos", "*.*")],
             initialdir=os.getcwd() # Começa no diretório atual
         )
         if filepath:
-            self.load_config(filepath)
+            self.carrega_config(filepath)
 
-    def load_config(self, filepath):
+    def carrega_config(self, filepath):
         try:
             self.config_filepath = filepath
             self.so = SO(escalonador=None, filaTarefasProntas=[], filaTodasTarefas=[])
             self.so.configurar_sistema(self.config_filepath)
-            self.reset_simulation_view()
-            self.update_gui()
+            self.reseta_simulacao_view()
+            self.atualiza_gui()
             
         except FileNotFoundError:
             messagebox.showwarning("Aviso", f"Arquivo '{filepath}' não encontrado. Carregue um arquivo de configuração.")
         except Exception as e:
             messagebox.showerror("Erro ao Carregar", f"Erro ao processar arquivo de configuração: {e}")
 
-    def reset_simulation(self):
+    def reseta_simulacao(self):
         if not self.config_filepath:
             messagebox.showerror("Erro", "Nenhum arquivo de configuração carregado.")
             return
-        self.load_config(self.config_filepath)
+        self.carrega_config(self.config_filepath)
 
-    def reset_simulation_view(self):
+    def reseta_simulacao_view(self):
         """Limpa a GUI para uma nova simulação."""
         self.running = False
         self.gantt_canvas.delete("all")
@@ -126,7 +126,7 @@ class Interface:
         self.gantt_canvas.create_line(50, 0, 50, num_tarefas * self.row_height, fill="black")
 
 
-    def step_gui(self):
+    def passo(self):
         """Executa um único passo"""
         if self.running:
             self.stop_gui()
@@ -136,11 +136,11 @@ class Interface:
             return
 
         if not self.so.executar_passo():
-            self.finish_simulation()
+            self.termina_simulacao()
         else:
-            self.update_gui()
+            self.atualiza_gui()
 
-    def run_gui(self):
+    def executa(self):
         """Executa a simulação completa"""
         if self.running:
             return
@@ -150,30 +150,30 @@ class Interface:
             return
 
         self.running = True
-        self.toggle_controls(enabled=False)
-        self.run_loop()
+        self.alterna_botoes(enabled=False)
+        self.loop_executar()
 
     def stop_gui(self):
         self.running = False
-        self.toggle_controls(enabled=True)
+        self.alterna_botoes(enabled=True)
 
-    def run_loop(self):
+    def loop_executar(self):
         """Loop principal para o modo 'Executar Completo'."""
         if self.running:
             if not self.so.executar_passo():
-                self.finish_simulation()
+                self.termina_simulacao()
             else:
-                self.update_gui()
+                self.atualiza_gui()
                 # Atualiza a GUI a cada 100ms
-                self.root.after(100, self.run_loop)
+                self.root.after(100, self.loop_executar)
 
-    def finish_simulation(self):
+    def termina_simulacao(self):
         self.running = False
-        self.toggle_controls(enabled=True)
+        self.alterna_botoes(enabled=True)
         messagebox.showinfo("Simulação Concluída", "A simulação de todas as tarefas foi finalizada.")
-        self.save_gantt() # Req 2.3
+        self.salva_gantt()
 
-    def update_gui(self):
+    def atualiza_gui(self):
         """Atualiza todos os elementos da GUI com base no estado do SO."""
         
         # 1. Atualiza Clock
@@ -213,9 +213,17 @@ class Interface:
             
         # Auto-scroll
         if x_end > self.gantt_canvas.winfo_width():
-             self.gantt_canvas.xview_moveto( (x_end - self.gantt_canvas.winfo_width() + 50) / self.gantt_canvas.cget("scrollregion").split(' ')[2] )
+            # Pega a largura total do scrollregion como string
+            scroll_width_str = self.gantt_canvas.cget("scrollregion").split(' ')[2]
+             
+            # Converte para float para poder fazer a divisão
+            scroll_width_float = float(scroll_width_str)
 
-    def toggle_controls(self, enabled: bool):
+            # Garante que não vamos dividir por zero
+            if scroll_width_float > 0:
+                self.gantt_canvas.xview_moveto( (x_end - self.gantt_canvas.winfo_width() + 50) / scroll_width_float )
+
+    def alterna_botoes(self, enabled: bool):
         """Ativa/desativa botões durante a execução completa."""
         state = 'normal' if enabled else 'disabled'
         self.load_button.config(state=state)
@@ -223,7 +231,7 @@ class Interface:
         self.step_button.config(state=state)
         self.run_button.config(state=state)
 
-    def save_gantt(self):
+    def salva_gantt(self):
         """Salva o gráfico de Gantt em um arquivo (Req 2.3)"""
         try:
             self.gantt_canvas.postscript(file="gantt_chart.ps", colormode='color',

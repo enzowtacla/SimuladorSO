@@ -20,11 +20,11 @@ class SO:
 
     def configurar_sistema(self, filepath: str) -> None:
         """Lê o arquivo de configuração e inicializa o sistema operacional."""
-        if not os.path.exists("filepath"):
+        if not os.path.exists(filepath):
             raise FileNotFoundError("Arquivo de configuração não encontrado.")
 
         self.limpeza_sistema()
-        with open("filepath", "r") as arquivo:
+        with open(filepath, "r") as arquivo:
             linhas = arquivo.readlines()
             # Primeira linha: algoritmo_escalonamento; quantum
             tipo_escalonador, quantum = linhas[0].strip().split(";")
