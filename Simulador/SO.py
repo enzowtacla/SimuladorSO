@@ -2,10 +2,10 @@ from dataclasses import dataclass
 from typing import List, Union
 import os
 
-from Simulador.tarefa import Tarefa, Evento
-from Simulador.escalonadorFIFO import EscalonadorFIFO
-from Simulador.escalonadorPrioP import EscalonadorPRIOP
-from Simulador.escalonadorSRTF import EscalonadorSRTF
+from tarefa import Tarefa, Evento
+from escalonadorFIFO import EscalonadorFIFO
+from escalonadorPrioP import EscalonadorPRIOP
+from escalonadorSRTF import EscalonadorSRTF
 
 
 @dataclass
@@ -18,13 +18,13 @@ class SO:
     quantum: int = 0  # Quantum para escalonadores que usam time-slicing
     ingresso_fila_prontas: bool = False  # Indica se tarefas ingressaram na fila de prontas recentemente
 
-    def configurar_sistema(self) -> None:
+    def configurar_sistema(self, filepath: str) -> None:
         """Lê o arquivo de configuração e inicializa o sistema operacional."""
-        if not os.path.exists("config.txt"):
+        if not os.path.exists("filepath"):
             raise FileNotFoundError("Arquivo de configuração não encontrado.")
 
         self.limpeza_sistema()
-        with open("config.txt", "r") as arquivo:
+        with open("filepath", "r") as arquivo:
             linhas = arquivo.readlines()
             # Primeira linha: algoritmo_escalonamento; quantum
             tipo_escalonador, quantum = linhas[0].strip().split(";")

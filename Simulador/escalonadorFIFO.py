@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from Simulador.escalonador import Escalonador
+from escalonador import Escalonador
 
 @dataclass
 class EscalonadorFIFO(Escalonador):  # Contém as informações do escalonador
