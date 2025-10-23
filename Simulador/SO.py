@@ -17,6 +17,7 @@ class SO:
     clock_sistema: int = 0  # Relógio do sistema
     quantum: int = 0  # Quantum para escalonadores que usam time-slicing
     ingresso_fila_prontas: bool = False  # Indica se tarefas ingressaram na fila de prontas recentemente
+    tempo_executando_atual: int = 0  # Tempo que a tarefa atual está executando
 
     def configurar_sistema(self, filepath: str) -> None:
         """Lê o arquivo de configuração e inicializa o sistema operacional."""
@@ -110,6 +111,23 @@ class SO:
             if not tarefa.finalizada:
                 tarefa.executar()
 
+    def executar_passo(self) -> bool:
+        """Executa um único passo (tick) da simulação."""
+        if all(tarefa.finalizada for tarefa in self.filaTodasTarefas):
+            return False  # Todas as tarefas foram finalizadas
+    
+        self.executar_tarefas() # Executa a tarefa que está rodando
+        self.clock_sistema += 1 # Avança o clock
+
+        if any(tarefa.executando for tarefa in self.filaTodasTarefas): # Incrementa o tempo de execução do quantum
+            self.tempo_executando_atual += 1
+        
+        self.atualizar_tarefas() # Atualiza o estado das tarefas
+        self.atualizarFilaProntas() # Atualiza a fila de tarefas prontas
+        self.analisar_tarefas() # Analisa as tarefas para escalonamento
+
+        return True  # A simulação continua
+    
     def atualizar_tarefas(self) -> None:
         """Atualiza o estado das tarefas com base no relógio do sistema."""
 
@@ -146,27 +164,33 @@ class SO:
             tempo_executando = self.analisar_tarefas(tempo_executando)
 
             self.mostrar_situacao_sistema()
+    
 
-    def analisar_tarefas(self, tempo_executando: int) -> int:
+    def analisar_tarefas(self) -> None:
         """Analisa as tarefas após a execução do sistema operacional."""
  
         tarefa_executando = next((tarefa for tarefa in self.filaTodasTarefas if tarefa.executando), None)
 
-        if (len(self.filaTarefasProntas) > 0 and tarefa_executando is None) or self.ingresso_fila_prontas or tempo_executando >= self.quantum:
+        preempt = (len(self.filaTarefasProntas) > 0 and tarefa_executando is None) or \
+                  self.ingresso_fila_prontas or \
+                  (self.quantum > 0 and self.tempo_executando_atual >= self.quantum)
+        
+        if preempt:
             for tarefa in self.filaTodasTarefas:
                 if tarefa.executando:
                     tarefa.ficar_pronta()
                     self.remover_tarefa_pronta(tarefa)
                     self.adicionar_tarefa_pronta(tarefa)
                     break
-
+            
             if self.ingresso_fila_prontas:
                 self.ingresso_fila_prontas = False
                 
-            if len(self.filaTarefasProntas) > 0:
-                self.escalonador.escalonar()
-            tempo_executando = 0
-        return tempo_executando
+        if len(self.filaTarefasProntas) > 0:
+            self.escalonador.escalonar()
+
+        self.tempo_executando = 0 # Reseta o quantum
+     
 
     def mostrar_situacao_sistema(self) -> None:
         """Mostra a situação atual do sistema operacional."""
