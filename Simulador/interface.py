@@ -20,7 +20,7 @@ class Interface:
         self.so = SO(escalonador=None, filaTarefasProntas=[], filaTodasTarefas=[])
         self.config_filepath = "config.txt"  # Caminho padrão
         self.running = False
-        self.tick_scale = 10  # Largura de cada "tick" no Gantt (em pixels)
+        self.tick_scale = 10  # Largura de cada tickn o Gantt (em pixels)
         self.row_height = 30  # Altura de cada linha de tarefa no Gantt
 
         self.setup_gui()
@@ -53,7 +53,7 @@ class Interface:
         main_frame = ttk.Frame(self.root, padding=10)
         main_frame.pack(fill='both', expand=True)
 
-        # --- Frame de Status das Tarefas (Req 1.5.1a) ---
+        # --- Frame de Status das Tarefas ---
         status_frame = ttk.LabelFrame(main_frame, text="Estado das Tarefas", padding=10)
         status_frame.pack(fill='x', side='bottom', pady=10)
         
@@ -62,7 +62,7 @@ class Interface:
         self.task_status_text.pack(fill='both', expand=True)
         self.task_status_text.config(state='disabled') # Torna somente leitura
 
-        # --- Frame do Gráfico de Gantt (Req 2.1) ---
+        # --- Frame do Gráfico de Gantt---
         gantt_frame = ttk.LabelFrame(main_frame, text="Gráfico de Gantt", padding=10)
         gantt_frame.pack(fill='both', expand=True)
 
@@ -127,7 +127,7 @@ class Interface:
 
 
     def step_gui(self):
-        """Executa um único passo (Req 1.5a)"""
+        """Executa um único passo"""
         if self.running:
             self.stop_gui()
 
@@ -141,7 +141,7 @@ class Interface:
             self.update_gui()
 
     def run_gui(self):
-        """Executa a simulação completa (Req 1.5b)"""
+        """Executa a simulação completa"""
         if self.running:
             return
             
@@ -179,7 +179,7 @@ class Interface:
         # 1. Atualiza Clock
         self.clock_label.config(text=f"Clock: {self.so.clock_sistema}")
 
-        # 2. Atualiza Status das Tarefas (Req 1.5.1a)
+        # 2. Atualiza Status das Tarefas 
         status_lines = []
         for tarefa in self.so.filaTodasTarefas:
             line = f"ID: {tarefa.id} | Estado: {tarefa.estado} | Restante: {tarefa.t_restante} | Executado: {tarefa.t_executado}"
@@ -192,7 +192,7 @@ class Interface:
         self.task_status_text.insert(tk.END, "\n".join(status_lines))
         self.task_status_text.config(state='disabled')
 
-        # 3. Atualiza Gráfico de Gantt (Req 2.1)
+        # 3. Atualiza Gráfico de Gantt 
         t = self.so.clock_sistema
         x_start = 50 + ((t - 1) * self.tick_scale) # Começa 50px à direita
         x_end = 50 + (t * self.tick_scale)
@@ -206,7 +206,6 @@ class Interface:
                 cor_hex = CORES_TAREFAS[tarefa.cor % len(CORES_TAREFAS)]
                 self.gantt_canvas.create_rectangle(x_start, y_start, x_end, y_end, fill=cor_hex, outline=cor_hex, tags="gantt_bar")
             elif tarefa.pronta:
-                 # Requisito 2.1 diz "ausência da cor"[cite: 33], mas podemos adicionar um
                  # indicador sutil para o modo de depuração (passo-a-passo)
                  self.gantt_canvas.create_rectangle(x_start + (self.tick_scale/2)-1, y_start + (self.row_height/2)-1, 
                                                    x_start + (self.tick_scale/2)+1, y_start + (self.row_height/2)+1, 
@@ -226,11 +225,6 @@ class Interface:
 
     def save_gantt(self):
         """Salva o gráfico de Gantt em um arquivo (Req 2.3)"""
-        # --- Solução para o Conflito de Requisitos ---
-        # Req 1.5  proíbe bibliotecas extras (como a 'Pillow' para PNG/JPG).
-        # Req 2.3 [cite: 36] pede JPG, PNG ou SVG.
-        # Tkinter, sem bibliotecas extras, só consegue exportar para PostScript (.ps).
-        # Esta solução cumpre o Req 1.5, mas gera um .ps em vez de .png.
         try:
             self.gantt_canvas.postscript(file="gantt_chart.ps", colormode='color',
                                          width=self.gantt_canvas.cget("scrollregion").split(' ')[2],
@@ -240,28 +234,6 @@ class Interface:
                                 "Este formato é exigido pela restrição de não usar bibliotecas externas.")
         except Exception as e:
             messagebox.showerror("Erro ao Exportar", f"Falha ao salvar arquivo PostScript: {e}")
-
-        # --- Solução alternativa (Viola Req 1.5, mas Cumpre Req 2.3) ---
-        # Descomente o código abaixo e instale a biblioteca Pillow (`pip install Pillow`)
-        # para salvar como PNG.
-        # try:
-        #     from PIL import ImageGrab
-        #     # Calcula a caixa do canvas na tela
-        #     x = self.root.winfo_rootx() + self.gantt_canvas.winfo_x()
-        #     y = self.root.winfo_rooty() + self.gantt_canvas.winfo_y()
-        #     x1 = x + self.gantt_canvas.winfo_width()
-        #     y1 = y + self.gantt_canvas.winfo_height()
-            
-        #     # Pega apenas a área do canvas e salva
-        #     ImageGrab.grab().crop((x, y, x1, y1)).save("gantt_chart.png")
-        #     messagebox.showinfo("Exportação Concluída", "Gráfico de Gantt salvo como 'gantt_chart.png'.")
-        # except ImportError:
-        #     messagebox.showwarning("Biblioteca Faltando", 
-        #                          "Para salvar como PNG, a biblioteca 'Pillow' é necessária.\n"
-        #                          "Execute: pip install Pillow\n"
-        #                          "(Note que isso viola o Requisito 1.5 do PDF )")
-        # except Exception as e:
-        #      messagebox.showerror("Erro ao Exportar", f"Falha ao salvar arquivo PNG: {e}")
 
 if __name__ == "__main__":
     root = tk.Tk()
