@@ -80,3 +80,7 @@ class Tarefa:   #Contém as informações de cada tarefa
     @property
     def pronta(self) -> bool:
         return self.estado == "pronta"
+    
+    @property
+    def aguardando(self) -> bool:
+        return self.estado == "aguardando"

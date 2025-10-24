@@ -111,8 +111,15 @@ class SO:
             if not tarefa.finalizada:
                 tarefa.executar()
 
+    def primeiro_passo(self):
+        self.tempo_executando_atual = 0
+        self.atualizar_tarefas()
+        self.atualizarFilaProntas()
+        self.analisar_tarefas()
+
     def executar_passo(self) -> bool:
         """Executa um único passo (tick) da simulação."""
+        
         if all(tarefa.finalizada for tarefa in self.filaTodasTarefas):
             return False  # Todas as tarefas foram finalizadas
     
@@ -148,48 +155,40 @@ class SO:
 
     def executar(self) -> None:
         """Inicia a execução do sistema operacional."""
-        tempo_executando = 0
-        self.atualizarFilaProntas()
-        self.mostrar_situacao_sistema()
-        tempo_executando = self.analisar_tarefas(tempo_executando)
+        self.primeiro_passo()
         while not all(tarefa.finalizada for tarefa in self.filaTodasTarefas): 
 
             self.executar_tarefas()
             self.clock_sistema += 1
 
-            tempo_executando += 1
+            self.tempo_executando_atual += 1
             self.atualizar_tarefas()
             self.atualizarFilaProntas()
 
-            tempo_executando = self.analisar_tarefas(tempo_executando)
+            self.analisar_tarefas()
 
             self.mostrar_situacao_sistema()
-    
 
     def analisar_tarefas(self) -> None:
         """Analisa as tarefas após a execução do sistema operacional."""
  
         tarefa_executando = next((tarefa for tarefa in self.filaTodasTarefas if tarefa.executando), None)
 
-        preempt = (len(self.filaTarefasProntas) > 0 and tarefa_executando is None) or \
-                  self.ingresso_fila_prontas or \
-                  (self.quantum > 0 and self.tempo_executando_atual >= self.quantum)
-        
-        if preempt:
+        if (len(self.filaTarefasProntas) > 0 and tarefa_executando is None) or self.ingresso_fila_prontas or (self.quantum > 0 and self.tempo_executando_atual >= self.quantum):
             for tarefa in self.filaTodasTarefas:
                 if tarefa.executando:
                     tarefa.ficar_pronta()
                     self.remover_tarefa_pronta(tarefa)
                     self.adicionar_tarefa_pronta(tarefa)
                     break
-            
+
             if self.ingresso_fila_prontas:
                 self.ingresso_fila_prontas = False
                 
-        if len(self.filaTarefasProntas) > 0:
-            self.escalonador.escalonar()
+            if len(self.filaTarefasProntas) > 0:
+                self.escalonador.escalonar()
+            self.tempo_executando_atual = 0
 
-        self.tempo_executando = 0 # Reseta o quantum
      
 
     def mostrar_situacao_sistema(self) -> None:
@@ -206,7 +205,7 @@ if __name__ == "__main__":
         filaTarefasProntas=[],
         filaTodasTarefas=[],
     )
-    so.configurar_sistema()
+    so.configurar_sistema("config.txt")
 
     for tarefa in so.filaTodasTarefas:
         print(tarefa)
