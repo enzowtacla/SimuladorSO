@@ -43,8 +43,6 @@ class SO:
                 duracao = int(campos[3])
                 prioridade = int(campos[4])
                 
-                self.tempo_total_exec += duracao
-
                 lista_eventos: List[Evento] = []
 
                 for campo in campos[5:]:
@@ -72,6 +70,23 @@ class SO:
                     eventos=lista_eventos,
                 )
                 self.adicionar_tarefa(tarefa)
+
+    def configurar_sistema_manual(self, tipo_escalonador: str, quantum: int, tarefas) -> None:
+        """Configura o sistema operacional manualmente."""
+        self.limpeza_sistema()
+        self.criar_escalonador(tipo_escalonador)
+        self.quantum = quantum
+
+        # transformar tarefas em realmente uma lista de tarefas
+        self.filaTodasTarefas = [Tarefa(**tarefa) for tarefa in tarefas]
+
+    def setar_quantum(self, quantum: int) -> None:
+        """Define o quantum para o sistema operacional."""
+        self.quantum = quantum
+    
+    def setar_tarefas(self, tarefas: List[Tarefa]) -> None:
+        """Define a lista de tarefas para o sistema operacional."""
+        self.filaTodasTarefas = tarefas
 
     def criar_escalonador(self, tipo: str) -> None:
         """Cria o escalonador apropriado com base no tipo especificado."""
@@ -103,7 +118,6 @@ class SO:
         self.filaTodasTarefas.clear()
         self.filaTarefasProntas.clear()
         self.clock_sistema = 0
-        self.tempo_total_exec = 0
 
     def executar_tarefas(self) -> None:
         """Executa as tarefas na fila de tarefas prontas."""

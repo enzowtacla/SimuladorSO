@@ -1,11 +1,13 @@
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox, scrolledtext
-from .SO import SO  # Importa a classe SO refatorada
+from tkinter import ttk, filedialog, messagebox, scrolledtext  
 import os
 import matplotlib
-matplotlib.use("TkAgg")  # Define o backend do matplotlib para o Tkinter
+matplotlib.use("TkAgg")  
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+
+from .SO import SO
+from .modais import ModalConfigManual
 
 # Lista de cores para o Gantt. O arquivo de config usa 'cor' como índice.
 CORES_TAREFAS = ["#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#00FFFF", "#FF00FF",
@@ -38,8 +40,22 @@ class Interface:
         control_frame = ttk.Frame(self.root, padding=10)
         control_frame.pack(fill='x', side='top')
 
-        self.load_button = ttk.Button(control_frame, text="Carregar Config", command=self.seleciona_config)
+        self.load_button = ttk.Menubutton(control_frame, text="Configurar Sistema ▾")
         self.load_button.pack(side='left', padx=5)
+
+        self.config_menu = tk.Menu(self.load_button, tearoff=0)
+
+        self.load_button["menu"] = self.config_menu
+
+        self.config_menu.add_command(
+            label="Carregar de Arquivo",
+            command=self.seleciona_config
+        )
+
+        self.config_menu.add_command(
+            label="Configurar Manualmente",
+            command=self.abrir_modal_config_manual
+        )
 
         self.reset_button = ttk.Button(control_frame, text="Resetar Simulação", command=self.reseta_simulacao)
         self.reset_button.pack(side='left', padx=5)
@@ -85,6 +101,31 @@ class Interface:
         self.gantt_toolbar.update()
         self.gantt_canvas_widget.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
+
+    def abrir_modal_config_manual(self):
+        """Cria e exibe a modal Nível 1."""
+        # 'self.root' é a janela principal (tk.Tk)
+        modal_nivel_1 = ModalConfigManual(self.root) 
+        # processamento dos dados da modal
+
+        if modal_nivel_1.resultado:
+            print(modal_nivel_1.resultado)  # Apenas para depuração
+            self.configurar_sistema(modal_nivel_1.resultado['tipo_escalonador'], modal_nivel_1.resultado['quantum'], modal_nivel_1.resultado['tarefas'])
+
+        else :
+            messagebox.showinfo("Configuração Manual não concluída", "A configuração manual foi cancelada.")
+
+    def configurar_sistema(self, tipo_escalonador, quantum, tarefas) -> None:
+        try:
+            self.so = SO(escalonador=None, filaTarefasProntas=[], filaTodasTarefas=[])
+            self.so.configurar_sistema_manual(tipo_escalonador, quantum, tarefas)
+
+            self.limpa_interface()
+            self.so.primeiro_passo()
+            self.inicializa_interface()
+        
+        except Exception as e:
+            messagebox.showerror("Erro na Configuração Manual", f"Erro ao configurar o sistema manualmente: {e}")
 
     def seleciona_config(self):
         filepath = filedialog.askopenfilename(
