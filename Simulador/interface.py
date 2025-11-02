@@ -7,7 +7,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 
 from .SO import SO
-from .modais import ModalConfigManual
+from .modalConfigManual import ModalConfigManual
 
 # Lista de cores para o Gantt. O arquivo de config usa 'cor' como índice.
 CORES_TAREFAS = ["#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#00FFFF", "#FF00FF",

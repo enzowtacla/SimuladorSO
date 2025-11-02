@@ -75,10 +75,18 @@ class SO:
         """Configura o sistema operacional manualmente."""
         self.limpeza_sistema()
         self.criar_escalonador(tipo_escalonador)
-        self.quantum = quantum
+        self.setar_quantum(quantum)
 
-        # transformar tarefas em realmente uma lista de tarefas
-        self.filaTodasTarefas = [Tarefa(**tarefa) for tarefa in tarefas]
+        # transformar tarefas em realmente uma lista de tarefas e eventos em reais eventos
+        tarefas_convertidas = []
+        for tarefa in tarefas:
+            eventos_convertidos = []
+            for evento in tarefa.get('eventos', []):
+                eventos_convertidos.append(Evento(**evento))
+            tarefa_convertida = tarefa.copy()
+            tarefa_convertida['eventos'] = eventos_convertidos
+            tarefas_convertidas.append(tarefa_convertida)
+        self.setar_tarefas([Tarefa(**tarefa) for tarefa in tarefas_convertidas])
 
     def setar_quantum(self, quantum: int) -> None:
         """Define o quantum para o sistema operacional."""
