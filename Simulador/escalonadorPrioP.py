@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from escalonador import Escalonador
+from .escalonador import Escalonador
 
 @dataclass
 class EscalonadorPRIOP(Escalonador):  # Contém as informações do escalonador

@@ -1,7 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, scrolledtext
-from SO import SO  # Importa a classe SO refatorada
-from tarefa import Tarefa  # Importa Tarefa para type hints
+from .SO import SO  # Importa a classe SO refatorada
 import os
 import matplotlib
 matplotlib.use("TkAgg")  # Define o backend do matplotlib para o Tkinter
@@ -103,7 +102,9 @@ class Interface:
             self.so = SO(escalonador=None, filaTarefasProntas=[], filaTodasTarefas=[])
             self.so.configurar_sistema(self.config_filepath)
             self.limpa_interface()
+            self.so.primeiro_passo()
             self.inicializa_interface()
+
         except FileNotFoundError:
             messagebox.showwarning("Aviso", f"Arquivo '{filepath}' não encontrado. Carregue um arquivo de configuração.")
         except Exception as e:
@@ -153,10 +154,9 @@ class Interface:
             messagebox.showwarning("Aviso", "Nenhuma tarefa carregada. Carregue um arquivo de configuração.")
             return
         
-        if self.primeiro_passo_executado is False:
-            self.so.primeiro_passo()
-            self.primeiro_passo_executado = True
+        if not self.primeiro_passo_executado:
             self.atualiza_interface()
+            self.primeiro_passo_executado = True
 
         elif not self.so.executar_passo():
             self.termina_simulacao()
@@ -181,12 +181,11 @@ class Interface:
 
     def loop_executar(self):
         """Loop principal para o modo Executar Completo."""
-        if self.primeiro_passo_executado is False:
-            self.so.primeiro_passo()
-            self.primeiro_passo_executado = True
+        if not self.primeiro_passo_executado:
             self.atualiza_interface()
+            self.primeiro_passo_executado = True
             self.root.after(100, self.loop_executar)
-    
+
         elif self.running:
 
             if not self.so.executar_passo():
@@ -227,7 +226,7 @@ class Interface:
     def atualiza_interface(self):
         """Atualiza todos os elementos da GUI com base no estado do SO."""
         # Atualiza Clock
-        self.clock_label.config(text=f"Clock: {self.so.clock_sistema}")
+        self.clock_label.config(text=f"Clock: {self.so.clock_sistema+1}")
         
         # Atualiza Status das Tarefas
         status_lines = []
@@ -245,7 +244,7 @@ class Interface:
         # Atualiza Gráfico de Gantt
         t = self.so.clock_sistema
 
-        x_start = t  # O tick atual começa no tempo t e vai até t+1
+        x_start = t # O tick atual começa no tempo t e vai até t+1
 
         for i, tarefa in enumerate(self.so.filaTodasTarefas):
             if tarefa.executando:

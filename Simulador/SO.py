@@ -2,10 +2,10 @@ from dataclasses import dataclass
 from typing import List, Union
 import os
 
-from tarefa import Tarefa, Evento
-from escalonadorFIFO import EscalonadorFIFO
-from escalonadorPrioP import EscalonadorPRIOP
-from escalonadorSRTF import EscalonadorSRTF
+from .tarefa import Tarefa, Evento
+from .escalonadorFIFO import EscalonadorFIFO
+from .escalonadorPrioP import EscalonadorPRIOP
+from .escalonadorSRTF import EscalonadorSRTF
 
 
 @dataclass
@@ -132,6 +132,9 @@ class SO:
         self.atualizar_tarefas() # Atualiza o estado das tarefas
         self.atualizarFilaProntas() # Atualiza a fila de tarefas prontas
         self.analisar_tarefas() # Analisa as tarefas para escalonamento
+
+        if all(tarefa.finalizada for tarefa in self.filaTodasTarefas):
+            return False  # Todas as tarefas foram finalizadas
 
         return True  # A simulação continua
     
