@@ -8,6 +8,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 
 from .SO import SO
 from .modalConfigManual import ModalConfigManual
+from .modalAjuda import ModalAjuda
 from .cores import CORES_TAREFAS, COR_TAREFA_NAO_EXECUTANDO
 class Interface:
     def __init__(self, root):
@@ -46,6 +47,12 @@ class Interface:
         self.config_menu.add_command(
             label="Configurar Manualmente",
             command=self.abrir_modal_config_manual
+        )
+
+        self.config_menu.add_separator()
+        self.config_menu.add_command(
+            label="Guia do Formato de Arquivo...",
+            command=self.abrir_modal_ajuda
         )
 
         self.reset_button = ttk.Button(control_frame, text="Resetar Simulação", command=self.reseta_simulacao)
@@ -92,7 +99,6 @@ class Interface:
         self.gantt_toolbar.update()
         self.gantt_canvas_widget.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
-
     def abrir_modal_config_manual(self):
         """Cria e exibe a modal Nível 1."""
         # 'self.root' é a janela principal (tk.Tk)
@@ -113,6 +119,10 @@ class Interface:
         else:
             messagebox.showinfo("Configuração Manual não concluída", "A configuração manual foi cancelada.")
 
+    def abrir_modal_ajuda(self):
+        """Abre a modal de ajuda sobre o formato do arquivo de configuração."""
+        ModalAjuda(self.root)
+        
     def configurar_sistema(self, tipo_escalonador, quantum, tarefas) -> None:
         try:
             self.primeiro_passo_executado = False
