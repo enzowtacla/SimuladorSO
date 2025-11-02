@@ -3,34 +3,38 @@ from tkinter import ttk
 from tkinter import scrolledtext
 from .cores import get_lista_cores_para_combobox
 
+# Modal de Ajuda sobre o formato do arquivo de configuração
 class ModalAjuda(tk.Toplevel):
-    
+    """Classe para o modal de ajuda."""
+    # Inicialização do modal
     def __init__(self, parent):
-        super().__init__(parent)
-        self.title("Guia de Formato de Arquivo de Configuração")
+        """Inicializa o modal de ajuda."""
+        super().__init__(parent) # inicializa a janela pai
+        self.title("Guia de Formato de Arquivo de Configuração") # título do modal
 
-        self.geometry("600x600") 
-        self.resizable(False, False)
+        self.geometry("600x600") # tamanho do modal
+        self.resizable(False, False) # desabilita redimensionamento
 
-        self._criar_widgets()
+        self._criar_widgets() # cria os widgets do modal
         
         # Configuração modal
-        self.transient(parent)
-        self.grab_set()
-        parent.wait_window(self)
+        self.transient(parent) # torna a janela modal em relação à janela pai
+        self.grab_set() # captura todos os eventos para esta janela
+        parent.wait_window(self) # espera até que a janela seja fechada
 
     def _criar_widgets(self):
-        frame = ttk.Frame(self, padding="10")
-        frame.pack(expand=True, fill='both')
+        """Cria os widgets do modal."""
+        frame = ttk.Frame(self, padding="10") # frame principal
+        frame.pack(expand=True, fill='both') # expande para preencher a janela
 
         # Cria a área de texto rolável
-        self.text_area = scrolledtext.ScrolledText(frame, wrap=tk.WORD, height=30, width=80)
-        self.text_area.pack(expand=True, fill='both', pady=(0, 10))
+        self.text_area = scrolledtext.ScrolledText(frame, wrap=tk.WORD, height=30, width=80) # área de texto
+        self.text_area.pack(expand=True, fill='both', pady=(0, 10)) # expande para preencher o frame
 
         # --- Define "tags" para formatação (ex: negrito) ---
-        self.text_area.tag_configure("header", font=("Arial", 14, "bold"), spacing3=10)
-        self.text_area.tag_configure("sub_header", font=("Arial", 12, "bold"), spacing3=5)
-        self.text_area.tag_configure("code", font=("Courier New", 10), background="#f0f0f0")
+        self.text_area.tag_configure("header", font=("Arial", 14, "bold"), spacing3=10) # configuração da tag de cabeçalho
+        self.text_area.tag_configure("sub_header", font=("Arial", 12, "bold"), spacing3=5) # configuração da tag de subcabeçalho
+        self.text_area.tag_configure("code", font=("Courier New", 10), background="#f0f0f0") # configuração da tag de código
 
         # --- Insere o Texto de Ajuda ---
         self._popular_texto_ajuda()
@@ -44,11 +48,11 @@ class ModalAjuda(tk.Toplevel):
 
     def _popular_texto_ajuda(self):
         """Preenche a caixa de texto com o guia."""
-        
+        # --- Título ---
         self.text_area.insert(tk.END, "Guia do Formato de Arquivo\n", "header")
         self.text_area.insert(tk.END, 
             "O arquivo de configuração deve ser um .txt simples.\n\n"
-        )
+        ) # inserção do título
 
         # --- 1. Linha do Sistema ---
         self.text_area.insert(tk.END, "Linha 1: Configuração do Sistema\n", "sub_header")
