@@ -4,18 +4,21 @@ from .modalTarefa import ModalTarefas
 
 class ModalConfigManual(tk.Toplevel):
     
-    def __init__(self, parent):
+    def __init__(self, parent, configuracao_existente=None):
         # Chamar o construtor do Toplevel
         super().__init__(parent)
         
         self.title("Configuração Manual")
+
+        self.configuracao_existente = configuracao_existente
         self.resultado = None  # Para armazenar o resultado da configuração
-        self.tipo_escalonador = None
-        self.quantum = None
-        # define uma configuração padrão de tarefas
-        self.tarefas = [{"id": "t01", "cor": 0, "ingresso": 0, "duracao": 5, "prioridade": 1}, 
+        self.tipo_escalonador = self.configuracao_existente.get('tipo_escalonador', 'FCFS') if self.configuracao_existente else "FCFS"
+        self.quantum = self.configuracao_existente.get('quantum', 4) if self.configuracao_existente else 4
+        self.tarefas_default = [{"id": "t01", "cor": 0, "ingresso": 0, "duracao": 5, "prioridade": 1}, 
                         {"id": "t02", "cor": 1, "ingresso": 2, "duracao": 3, "prioridade": 2}, 
                         {"id": "t03", "cor": 2, "ingresso": 4, "duracao": 4, "prioridade": 1}]
+        # define uma configuração padrão de tarefas
+        self.tarefas = self.configuracao_existente.get('tarefas', self.tarefas_default) if self.configuracao_existente else self.tarefas_default
 
         # Criar a interface interna
         self._criar_widgets()
@@ -35,7 +38,7 @@ class ModalConfigManual(tk.Toplevel):
         
         # seleção do tipo de escalonador
         ttk.Label(frame, text="Tipo de Escalonador:").pack(pady=5)
-        self.tipo_escalonador = tk.StringVar(value="FCFS")
+        self.tipo_escalonador = tk.StringVar(value=self.tipo_escalonador)
         escalonador_menu = ttk.Combobox(
             frame, 
             textvariable=self.tipo_escalonador,
@@ -45,7 +48,7 @@ class ModalConfigManual(tk.Toplevel):
         escalonador_menu.pack(pady=5, padx=10, fill="x")
 
         ttk.Label(frame, text="Quantum:").pack(pady=5)
-        self.quantum = tk.IntVar(value=4)
+        self.quantum = tk.IntVar(value=self.quantum)
         ttk.Entry(frame, textvariable=self.quantum).pack(pady=5, padx=10, fill="x")
 
         # --- Botão para chamar a Modal das Tarefas ---

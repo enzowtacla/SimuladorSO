@@ -18,13 +18,12 @@ class Interface:
         self.config_filepath = "config.txt"  # Caminho padrão
         self.running = False
         self.primeiro_passo_executado = False
-
         # Atributos do Gantt
         self.gantt_fig: Figure = None
         self.gantt_ax = None
         self.gantt_canvas_widget = None
         self.gantt_toolbar = None
-        
+        self.configs_atuais = None
         self.setup_interface()
 
     def setup_interface(self):
@@ -97,18 +96,27 @@ class Interface:
     def abrir_modal_config_manual(self):
         """Cria e exibe a modal Nível 1."""
         # 'self.root' é a janela principal (tk.Tk)
-        modal_nivel_1 = ModalConfigManual(self.root) 
+
+        if self.configs_atuais:
+            configuracao_existente = self.configs_atuais
+        elif self.so.filaTodasTarefas:
+            configuracao_existente = self.so.get_config_atual()
+        else:
+            configuracao_existente = None
+
+        modal_nivel_1 = ModalConfigManual(self.root, configuracao_existente=configuracao_existente) 
         # processamento dos dados da modal
 
         if modal_nivel_1.resultado:
-            print(modal_nivel_1.resultado)  # Apenas para depuração
             self.configurar_sistema(modal_nivel_1.resultado['tipo_escalonador'], modal_nivel_1.resultado['quantum'], modal_nivel_1.resultado['tarefas'])
 
-        else :
+        else:
             messagebox.showinfo("Configuração Manual não concluída", "A configuração manual foi cancelada.")
 
     def configurar_sistema(self, tipo_escalonador, quantum, tarefas) -> None:
         try:
+            self.primeiro_passo_executado = False
+            self.running = False
             self.so = SO(escalonador=None, filaTarefasProntas=[], filaTodasTarefas=[])
             self.so.configurar_sistema_manual(tipo_escalonador, quantum, tarefas)
 
@@ -144,10 +152,20 @@ class Interface:
             messagebox.showerror("Erro ao Carregar", f"Erro ao processar arquivo de configuração: {e}")
 
     def reseta_simulacao(self):
-        if not self.config_filepath:
-            messagebox.showerror("Erro", "Nenhum arquivo de configuração carregado.")
-            return
-        self.carrega_config(self.config_filepath)
+        try:
+            if self.configs_atuais:
+                configs_atuais = self.configs_atuais
+            else:
+                configs_atuais = self.so.get_config_atual()
+            self.so = SO(escalonador=None, filaTarefasProntas=[], filaTodasTarefas=[])
+            self.so.configurar_sistema_manual(configs_atuais['tipo_escalonador'], configs_atuais['quantum'], configs_atuais['tarefas'])
+            self.primeiro_passo_executado = False
+            self.running = False
+            self.limpa_interface()
+            self.so.primeiro_passo()
+            self.inicializa_interface()
+        except Exception as e:
+            messagebox.showerror("Erro ao Resetar", f"Erro ao resetar a simulação: {e}")
 
     def limpa_interface(self):
         """Limpa a GUI para uma nova simulação"""
@@ -228,11 +246,26 @@ class Interface:
                 # Atualiza a GUI a cada 100ms
                 self.root.after(100, self.loop_executar)
 
+    def atualiza_status_tarefas(self):
+                # Atualiza Status das Tarefas
+        status_lines = []
+        for tarefa in self.so.filaTodasTarefas:
+            line = f"ID: {tarefa.id} | Estado: {tarefa.estado} | Restante: {tarefa.t_restante} | Executado: {tarefa.t_executado}"
+            if tarefa.bloqueada:
+                line += f" (Bloqueado por {tarefa.t_bloqueado}/{tarefa.evento_bloqueio_atual.duracao})"
+            status_lines.append(line)
+        self.task_status_text.config(state='normal')
+        self.task_status_text.delete('1.0', tk.END)
+        self.task_status_text.insert(tk.END, "\n".join(status_lines))
+        self.task_status_text.config(state='disabled')
+
     def termina_simulacao(self):
         self.running = False
         self.primeiro_passo_executado = False
+        self.atualiza_status_tarefas()
         self.alternar_botoes(enabled=True)
         messagebox.showinfo("Simulação Concluída", "A simulação de todas as tarefas foi finalizada.")
+        self.configs_atuais = self.so.get_config_atual()
         self.so.limpeza_sistema()
         # Pergunta se o usuário quer salvar o gráfico
         if messagebox.askyesno("Salvar Gráfico", "Deseja salvar o gráfico de Gantt como PNG?"):
@@ -244,36 +277,15 @@ class Interface:
         self.clock_label.config(text=f"Clock: {self.so.clock_sistema}")
         
         # Atualiza Status das Tarefas
-        status_lines = []
-        for tarefa in self.so.filaTodasTarefas:
-            line = f"ID: {tarefa.id} | Estado: {tarefa.estado} | Restante: {tarefa.t_restante} | Executado: {tarefa.t_executado}"
-            if tarefa.bloqueada:
-                line += f" (Bloqueado por {tarefa.t_bloqueado}/{tarefa.evento_bloqueio_atual.duracao})"
-            status_lines.append(line)
-            
-        self.task_status_text.config(state='normal')
-        self.task_status_text.delete('1.0', tk.END)
-        self.task_status_text.insert(tk.END, "\n".join(status_lines))
-        self.task_status_text.config(state='disabled')
+        self.atualiza_status_tarefas()
 
     def atualiza_interface(self):
         """Atualiza todos os elementos da GUI com base no estado do SO."""
         # Atualiza Clock
         self.clock_label.config(text=f"Clock: {self.so.clock_sistema+1}")
         
-        # Atualiza Status das Tarefas
-        status_lines = []
-        for tarefa in self.so.filaTodasTarefas:
-            line = f"ID: {tarefa.id} | Estado: {tarefa.estado} | Restante: {tarefa.t_restante} | Executado: {tarefa.t_executado}"
-            if tarefa.bloqueada:
-                line += f" (Bloqueado por {tarefa.t_bloqueado}/{tarefa.evento_bloqueio_atual.duracao})"
-            status_lines.append(line)
-            
-        self.task_status_text.config(state='normal')
-        self.task_status_text.delete('1.0', tk.END)
-        self.task_status_text.insert(tk.END, "\n".join(status_lines))
-        self.task_status_text.config(state='disabled')
-        
+        self.atualiza_status_tarefas()
+
         # Atualiza Gráfico de Gantt
         t = self.so.clock_sistema
 

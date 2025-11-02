@@ -80,30 +80,30 @@ class ModalEvent(tk.Toplevel):
         defaults = self.dados_existentes or {}
         # --- Cria os novos widgets com base no tipo e preenche com dados ---
         if tipo == "I/O":
-            var_ing = tk.IntVar(value=defaults.get('ingresso', 0))
+            var_ing = tk.IntVar(value=defaults.get('instante', 0))
             var_dur = tk.IntVar(value=defaults.get('duracao', 1))
-            self.dynamic_vars = {'ingresso': var_ing, 'duracao': var_dur}
+            self.dynamic_vars = {'instante': var_ing, 'duracao': var_dur}
 
-            ttk.Label(self.dynamic_frame, text="Tempo de Ingresso:").pack(anchor='w')
+            ttk.Label(self.dynamic_frame, text="Instante inicial:").pack(anchor='w')
             ttk.Entry(self.dynamic_frame, textvariable=var_ing).pack(fill='x', pady=5)
             ttk.Label(self.dynamic_frame, text="Duração do I/O:").pack(anchor='w')
             ttk.Entry(self.dynamic_frame, textvariable=var_dur).pack(fill='x', pady=5)
 
         elif tipo in ["Mutex Lock", "Mutex Unlock"]:
-            var_ing = tk.IntVar(value=defaults.get('ingresso', 0))
+            var_ing = tk.IntVar(value=defaults.get('instante', 0))
             var_mid = tk.StringVar(value=defaults.get('mutex_id', 'M1'))
-            self.dynamic_vars = {'ingresso': var_ing, 'mutex_id': var_mid}
+            self.dynamic_vars = {'instante': var_ing, 'mutex_id': var_mid}
 
-            ttk.Label(self.dynamic_frame, text="Tempo de Ingresso:").pack(anchor='w')
+            ttk.Label(self.dynamic_frame, text="Instante inicial:").pack(anchor='w')
             ttk.Entry(self.dynamic_frame, textvariable=var_ing).pack(fill='x', pady=5)
             label_text = f"ID do Mutex (ex: M1, M2):"
             ttk.Label(self.dynamic_frame, text=label_text).pack(anchor='w')
             ttk.Entry(self.dynamic_frame, textvariable=var_mid).pack(fill='x', pady=5)
 
         elif tipo in ["Envio", "Recebimento"]:
-            var_ing = tk.IntVar(value=defaults.get('ingresso', 0))
-            self.dynamic_vars = {'ingresso': var_ing}
-            ttk.Label(self.dynamic_frame, text="Tempo de Ingresso:").pack(anchor='w')
+            var_ing = tk.IntVar(value=defaults.get('instante', 0))
+            self.dynamic_vars = {'instante': var_ing}
+            ttk.Label(self.dynamic_frame, text="Instante inicial:").pack(anchor='w')
             ttk.Entry(self.dynamic_frame, textvariable=var_ing).pack(fill='x', pady=5)
         
         else:
@@ -140,9 +140,9 @@ class ModalEvent(tk.Toplevel):
                 dados_brutos[nome_var] = var_obj.get()
 
             # --- Validações ---
-            ingresso = dados_brutos.get('ingresso')
-            if ingresso is not None and ingresso < 0:
-                return (False, "O 'Tempo de Ingresso' não pode ser negativo.")
+            instante = dados_brutos.get('instante')
+            if instante is not None and instante < 0:
+                return (False, "O 'Instante inicial' não pode ser negativo.")
 
             if tipo_evento_display == "I/O":
                 if dados_brutos.get('duracao', 0) <= 0:

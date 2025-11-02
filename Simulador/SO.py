@@ -18,6 +18,7 @@ class SO:
     quantum: int = 0  # Quantum para escalonadores que usam time-slicing
     ingresso_fila_prontas: bool = False  # Indica se tarefas ingressaram na fila de prontas recentemente
     tempo_executando_atual: int = 0  # Tempo que a tarefa atual está executando
+    nome_tipo_escalonador: str = ""
 
     def configurar_sistema(self, filepath: str) -> None:
         """Lê o arquivo de configuração e inicializa o sistema operacional."""
@@ -70,7 +71,7 @@ class SO:
                     eventos=lista_eventos,
                 )
                 self.adicionar_tarefa(tarefa)
-
+    
     def configurar_sistema_manual(self, tipo_escalonador: str, quantum: int, tarefas) -> None:
         """Configura o sistema operacional manualmente."""
         self.limpeza_sistema()
@@ -78,15 +79,40 @@ class SO:
         self.setar_quantum(quantum)
 
         # transformar tarefas em realmente uma lista de tarefas e eventos em reais eventos
-        tarefas_convertidas = []
+        tarefas_convertidas: List[Tarefa] = []
         for tarefa in tarefas:
-            eventos_convertidos = []
+            eventos_convertidos: List[Evento] = []
             for evento in tarefa.get('eventos', []):
-                eventos_convertidos.append(Evento(**evento))
-            tarefa_convertida = tarefa.copy()
-            tarefa_convertida['eventos'] = eventos_convertidos
+                evento_convertido = Evento(evento['tipo_evento'], evento['instante'], evento.get('duracao'))
+                eventos_convertidos.append(evento_convertido)
+            tarefa_convertida = Tarefa (
+                id=tarefa['id'],
+                cor=tarefa['cor'],
+                ingresso=tarefa['ingresso'],
+                duracao=tarefa['duracao'],
+                prioridade=tarefa['prioridade'],
+                eventos=eventos_convertidos)
             tarefas_convertidas.append(tarefa_convertida)
-        self.setar_tarefas([Tarefa(**tarefa) for tarefa in tarefas_convertidas])
+        self.setar_tarefas(tarefas_convertidas)
+
+    def get_config_atual(self) -> dict:
+        """Retorna a configuração atual do sistema operacional."""
+        tarefas = []
+        for tarefa in self.filaTodasTarefas:
+            tarefa_dict = {
+                'id': tarefa.id,
+                'cor': tarefa.cor,
+                'ingresso': tarefa.ingresso,
+                'duracao': tarefa.duracao,
+                'prioridade': tarefa.prioridade,
+                'eventos': [{'tipo_evento': evento.tipo, 'instante': evento.instante, 'duracao': evento.duracao} for evento in tarefa.eventos]
+            }
+            tarefas.append(tarefa_dict)
+        return {
+            'tipo_escalonador': self.nome_tipo_escalonador,
+            'quantum': self.quantum,
+            'tarefas': tarefas
+        }
 
     def setar_quantum(self, quantum: int) -> None:
         """Define o quantum para o sistema operacional."""
@@ -98,6 +124,7 @@ class SO:
 
     def criar_escalonador(self, tipo: str) -> None:
         """Cria o escalonador apropriado com base no tipo especificado."""
+        self.nome_tipo_escalonador = tipo
         if tipo == "FCFS":
             self.escalonador = EscalonadorFIFO(tarefas=self.filaTarefasProntas)
         elif tipo == "PRIOP":

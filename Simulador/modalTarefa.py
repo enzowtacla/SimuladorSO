@@ -128,13 +128,13 @@ class ModalTarefas(tk.Toplevel):
         for i, evento in enumerate(self.eventos):
             tipo_abrev = evento.get('tipo_evento', 'N/A')
             tipo_display = mapa_tipos_display.get(tipo_abrev, tipo_abrev)
-            tempo_ini = evento.get('ingresso', '?')
+            tempo_ini = evento.get('instante', '?')
             dur = evento.get('duracao', '?')
 
-            display_text = f"[{tipo_display}] Ingr: {tempo_ini}, Dur: {dur}"
-            
+            display_text = f"[{tipo_display}] Início: {tempo_ini}, Duração: {dur}"
+
             if tipo_abrev != "IO":
-                 display_text = f"[{tipo_display}] Ingr: {tempo_ini}"
+                display_text = f"[{tipo_display}] Início: {tempo_ini}"
 
             self.lista_eventos.insert('end', display_text)
     
@@ -241,14 +241,14 @@ class ModalTarefas(tk.Toplevel):
         """Valida a lógica de Lock/Unlock."""
         mutexes_abertos = {}
         try:
-            eventos_ordenados = sorted(self.eventos, key=lambda ev: ev['ingresso'])
+            eventos_ordenados = sorted(self.eventos, key=lambda ev: ev['instante'])
         except KeyError:
-            return (False, "Um evento está sem 'ingresso'.")
-        
+            return (False, "Um evento está sem 'instante inicial'.")
+
         for evento in eventos_ordenados:
             tipo = evento.get('tipo_evento')
             mid = evento.get('mutex_id')
-            tempo = evento.get('ingresso')
+            tempo = evento.get('instante')
 
             if tipo == "ML": # Mutex Lock
                 if mid in mutexes_abertos:
@@ -270,14 +270,14 @@ class ModalTarefas(tk.Toplevel):
             return (True, "OK")
             
         try:
-            eventos_ordenados = sorted(self.eventos, key=lambda ev: ev['ingresso'])
+            eventos_ordenados = sorted(self.eventos, key=lambda ev: ev['instante'])
         except KeyError:
-            return (False, "Um evento está sem 'ingresso'.")
-        
+            return (False, "Um evento está sem 'instante inicial'.")
+
         ultimo_tempo_fim = -1
         
         for evento in eventos_ordenados:
-            tempo_inicio = evento['ingresso']
+            tempo_inicio = evento['instante']
             # Eventos sem duração (ML, MU) têm duração 0
             duracao = evento.get('duracao', 0) 
             
@@ -295,12 +295,12 @@ class ModalTarefas(tk.Toplevel):
 
         for evento in self.eventos:
             try:
-                tempo_inicio = evento['ingresso']
+                tempo_inicio = evento['instante']
                 duracao = evento.get('duracao', 0)
                 tempo_fim = tempo_inicio + duracao
                 
                 if tempo_fim > duracao_tarefa:
-                    return (False, f"Erro de Limite: Evento '{evento.get('tipo_evento')}' (Ingr: {tempo_inicio}, Dur: {duracao}) termina em {tempo_fim}, que é maior que a duração da tarefa ({duracao_tarefa}).")
+                    return (False, f"Erro de Limite: Evento '{evento.get('tipo_evento')}' (Início: {tempo_inicio}, Dur: {duracao}) termina em {tempo_fim}, que é maior que a duração da tarefa ({duracao_tarefa}).")
             except Exception as e:
                 return (False, f"Erro ao processar evento: {e}")
                 
