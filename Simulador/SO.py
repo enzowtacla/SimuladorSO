@@ -170,7 +170,7 @@ class SO:
 
     def executar_tarefas(self) -> None:
         """chama a função executar das tarefas na fila de tarefas."""
-        for tarefa in self.filaTarefasProntas:
+        for tarefa in self.filaTodasTarefas:
             if not tarefa.finalizada:
                 tarefa.executar()
 
