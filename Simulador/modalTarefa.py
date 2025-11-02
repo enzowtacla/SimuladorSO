@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from .modalEvento import ModalEvent
-
+from .cores import get_lista_cores_para_combobox, extrair_id_cor_do_texto, get_cor_nome
 class ModalTarefas(tk.Toplevel):
     
     def __init__(self, parent, dados_tarefa_existente=None):
@@ -14,8 +14,8 @@ class ModalTarefas(tk.Toplevel):
         self.eventos = list(self.dados_existentes.get('eventos', [])) if self.dados_existentes else []
 
         defaults = dados_tarefa_existente or {}
-        
-        self.cor_tarefa_var = tk.IntVar(value=defaults.get('cor', 1))
+
+        self.cor_tarefa_var = tk.StringVar(value=f"{defaults.get('cor', 1)}: {get_cor_nome(defaults.get('cor', 1))}")
         self.ingresso_tarefa_var = tk.IntVar(value=defaults.get('ingresso', 0))
         self.duracao_tarefa_var = tk.IntVar(value=defaults.get('duracao', 5))
         self.prioridade_tarefa_var = tk.IntVar(value=defaults.get('prioridade', 1))
@@ -38,8 +38,13 @@ class ModalTarefas(tk.Toplevel):
 
         # Campos para definir atributos da tarefa
 
-        ttk.Label(frame, text="Cor da Tarefa (Índice):").pack(anchor='w', pady=(10, 5))
-        ttk.Entry(frame, textvariable=self.cor_tarefa_var).pack(fill='x')
+        self.cor_combobox = ttk.Combobox(
+            frame, 
+            textvariable=self.cor_tarefa_var,
+            values=get_lista_cores_para_combobox(), 
+            state="readonly"
+        )
+        self.cor_combobox.pack(fill='x')
 
         ttk.Label(frame, text="Tempo de Ingresso:").pack(anchor='w', pady=(10, 5))
         ttk.Entry(frame, textvariable=self.ingresso_tarefa_var).pack(fill='x')
@@ -70,10 +75,15 @@ class ModalTarefas(tk.Toplevel):
         event_frame = ttk.LabelFrame(frame, text="Eventos", padding=10)
         event_frame.pack(expand=True, fill='both', pady=10)
 
-        self.lista_eventos = tk.Listbox(event_frame)
-        self.lista_eventos.pack(expand=True, fill='both', pady=(5, 0))
+        event_frame.columnconfigure(0, weight=1)
+        event_frame.rowconfigure(0, weight=1)
+
+        self.lista_eventos = tk.Listbox(event_frame, width=50)
+        self.lista_eventos.grid(row=0, column=0, sticky='nsew')
+
+        # botões Editar e Remover
         event_btn_frame = ttk.Frame(event_frame)
-        event_btn_frame.pack(side='right', fill='y')
+        event_btn_frame.grid(row=0, column=1, sticky='n')
         ttk.Button(
             event_btn_frame,
             text="Editar...",
@@ -190,6 +200,7 @@ class ModalTarefas(tk.Toplevel):
             duracao_tarefa = self.duracao_tarefa_var.get()
             ingresso_tarefa = self.ingresso_tarefa_var.get()
             prioridade_tarefa = self.prioridade_tarefa_var.get()
+            cor_id = extrair_id_cor_do_texto(self.cor_tarefa_var.get())
 
             if duracao_tarefa <= 0:
                 return (False, "A 'Duração da Tarefa' deve ser maior que 0.")
@@ -213,7 +224,7 @@ class ModalTarefas(tk.Toplevel):
 
             
             dados_finais = {
-                "cor": self.cor_tarefa_var.get(),
+                "cor": cor_id,
                 "ingresso": ingresso_tarefa,
                 "duracao": duracao_tarefa,
                 "prioridade": prioridade_tarefa,

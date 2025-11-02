@@ -62,13 +62,18 @@ class ModalConfigManual(tk.Toplevel):
         ).pack(pady=(5, 10))
         # --- Mostrar as tarefas adicionadas ---
 
-        task_frame = ttk.LabelFrame(frame, text="Conjunto de Tarefas", padding=10)
-        task_frame.pack(expand=True, fill='both', pady=10)
+        task_frame = ttk.LabelFrame(frame, text="Conjunto de Tarefas")
+        task_frame.pack(expand=True, fill='both', padx=5, pady=10)
 
-        self.lista_tarefas = tk.Listbox(task_frame)
-        self.lista_tarefas.pack(expand=True, fill='both', pady=(5, 0))
+        task_frame.columnconfigure(0, weight=1)
+        task_frame.rowconfigure(0, weight=1)
+
+        self.lista_tarefas = tk.Listbox(task_frame, width=50)
+        self.lista_tarefas.grid(row=0, column=0, sticky='nsew')
+
+         # Frame para os botões Editar e Remover
         task_btn_frame = ttk.Frame(task_frame)
-        task_btn_frame.pack(side='right', fill='y')
+        task_btn_frame.grid(row=0, column=1, sticky='n')
         ttk.Button(
             task_btn_frame,
             text="Editar...",

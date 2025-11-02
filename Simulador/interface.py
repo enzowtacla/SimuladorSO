@@ -8,14 +8,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 
 from .SO import SO
 from .modalConfigManual import ModalConfigManual
-
-# Lista de cores para o Gantt. O arquivo de config usa 'cor' como índice.
-CORES_TAREFAS = ["#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#00FFFF", "#FF00FF",
-                "#800000", "#008000", "#000080", "#808000", "#008080", "#800080",
-                "#C0C0C0", "#FF6347", "#ADFF2F", "#1E90FF", "#FFD700", "#40E0D0"]
-
-COR_TAREFA_NAO_EXECUTANDO = "#A9A9A9"  # Cinza escuro para tarefas não executando
-
+from .cores import CORES_TAREFAS, COR_TAREFA_NAO_EXECUTANDO
 class Interface:
     def __init__(self, root):
         self.root = root
@@ -33,7 +26,6 @@ class Interface:
         self.gantt_toolbar = None
         
         self.setup_interface()
-        self.carrega_config(self.config_filepath)  # Tenta carregar config padrão
 
     def setup_interface(self):
         # Frame de Controles
