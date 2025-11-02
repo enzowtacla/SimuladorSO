@@ -66,7 +66,7 @@ class SO:
                         # se for MU ou ML, possui apenas tempo de início
                         elif tipo == "MU" or tipo == "ML":
                             tempo_inicio = int(sub_campos[1])
-                            evento = Evento(tipo=tipo, instante=tempo_inicio, duracao=None) # cria o evento
+                            evento = Evento(tipo=tipo, instante=tempo_inicio, duracao=0) # cria o evento
                             lista_eventos.append(evento) # adiciona o evento à lista
 
                 # cria a tarefa com os dados lidos
