@@ -41,7 +41,7 @@ make_run:
 	./$(TARGET_EXEC)
 	@echo "--- Execução concluída ---"
 
-make_run_intepretaded:
+make_run_interpreted:
 	@echo "--- Executando o simulador no interpretador Python ---"
 	python3 $(MAIN_SCRIPT)
 	@echo "--- Execução concluída ---"
