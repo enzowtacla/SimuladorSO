@@ -4,12 +4,17 @@ CORES_TAREFAS = ["#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#00FFFF", "#FF00FF
                 "#C0C0C0", "#FF6347", "#ADFF2F", "#1E90FF", "#FFD700", "#40E0D0"]
 
 COR_TAREFA_NAO_EXECUTANDO = "#A9A9A9"  # Cinza escuro para tarefas não executando
+
+# nome das cores correspondentes aos índices -  utilizado na configuração manual
 NOMES_CORES = [
     "Vermelho", "Verde", "Azul", "Amarelo", "Ciano", "Magenta",
     "Marrom", "Verde Escuro", "Azul Marinho", "Oliva", "Teal", "Roxo",
     "Prata", "Tomate", "Verde Lima", "Azul Céu", "Dourado", "Turquesa"
 ]
 
+# Funções auxiliares para manipulação de cores
+
+# pegar nome e hex da cor pelo id
 def get_cor_nome(id_cor):
     """Retorna o nome da cor pelo ID"""
     if 0 <= id_cor < len(NOMES_CORES):
@@ -22,6 +27,7 @@ def get_cor_hex(id_cor):
         return CORES_TAREFAS[id_cor]
     return "#808080" 
 
+# lista de cores formatada para combobox - id: nome
 def get_lista_cores_para_combobox():
     """Retorna lista formatada para combobox"""
     lista = []
@@ -30,6 +36,7 @@ def get_lista_cores_para_combobox():
         lista.append(f"{i}: {nome}")
     return lista
 
+# Extrai o ID da cor do texto do combobox
 def extrair_id_cor_do_texto(texto_combobox):
     """Extrai o ID da cor do texto do combobox"""
     return int(texto_combobox.split(':')[0])

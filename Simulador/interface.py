@@ -11,64 +11,67 @@ from .modalConfigManual import ModalConfigManual
 from .modalAjuda import ModalAjuda
 from .cores import CORES_TAREFAS, COR_TAREFA_NAO_EXECUTANDO
 class Interface:
+    """Classe principal da interface do simulador."""
     def __init__(self, root):
-        self.root = root
-        self.root.title("Simulador de Escalonamento")
-        self.root.geometry("1920x1080")
-        self.so = SO(escalonador=None, filaTarefasProntas=[], filaTodasTarefas=[])
+        self.root = root # janela principal
+        self.root.title("Simulador de Escalonamento") # título da janela
+        self.root.geometry("1920x1080") # tamanho da janela
+        self.so = SO(escalonador=None, filaTarefasProntas=[], filaTodasTarefas=[]) # sistema operacional simulado
         self.config_filepath = "config.txt"  # Caminho padrão
-        self.running = False
-        self.primeiro_passo_executado = False
+        self.running = False # Flag para execução contínua
+        self.primeiro_passo_executado = False # Flag para o primeiro passo
         # Atributos do Gantt
         self.gantt_fig: Figure = None
         self.gantt_ax = None
         self.gantt_canvas_widget = None
         self.gantt_toolbar = None
         self.configs_atuais = None
-        self.setup_interface()
+        self.setup_interface() # configura a interface gráfica
 
     def setup_interface(self):
+        """Configura todos os elementos da interface gráfica."""
         # Frame de Controles
         control_frame = ttk.Frame(self.root, padding=10)
         control_frame.pack(fill='x', side='top')
 
+        # Menu de Configuração
         self.load_button = ttk.Menubutton(control_frame, text="Configurar Sistema ▾")
         self.load_button.pack(side='left', padx=5)
 
-        self.config_menu = tk.Menu(self.load_button, tearoff=0)
+        self.config_menu = tk.Menu(self.load_button, tearoff=0) # menu suspenso
 
-        self.load_button["menu"] = self.config_menu
+        self.load_button["menu"] = self.config_menu # associa o menu ao botão
 
         self.config_menu.add_command(
             label="Carregar de Arquivo",
             command=self.seleciona_config
-        )
+        ) # comando para carregar de arquivo
 
         self.config_menu.add_command(
             label="Configurar Manualmente",
             command=self.abrir_modal_config_manual
-        )
+        ) # comando para configuração manual
 
-        self.config_menu.add_separator()
+        self.config_menu.add_separator() # separador no menu
         self.config_menu.add_command(
             label="Guia do Formato de Arquivo...",
             command=self.abrir_modal_ajuda
-        )
+        ) # comando para abrir a modal de ajuda
 
         self.reset_button = ttk.Button(control_frame, text="Resetar Simulação", command=self.reseta_simulacao)
-        self.reset_button.pack(side='left', padx=5)
+        self.reset_button.pack(side='left', padx=5) # botão de resetar simulação
 
         self.step_button = ttk.Button(control_frame, text="Executar Passo", command=self.passo)
-        self.step_button.pack(side='left', padx=5)
+        self.step_button.pack(side='left', padx=5) # botão de executar passo
 
         self.run_button = ttk.Button(control_frame, text="Executar Completo", command=self.executar_completo)
-        self.run_button.pack(side='left', padx=5)
+        self.run_button.pack(side='left', padx=5) # botão de executar completo
 
         self.stop_button = ttk.Button(control_frame, text="Parar", command=self.parar)
-        self.stop_button.pack(side='left', padx=5)
+        self.stop_button.pack(side='left', padx=5) # botão de parar
 
         self.clock_label = ttk.Label(control_frame, text="Clock: 0", font=("Arial", 14, "bold"))
-        self.clock_label.pack(side='right', padx=10)
+        self.clock_label.pack(side='right', padx=10) # label do clock do sistema
 
         # Frame Principal
         main_frame = ttk.Frame(self.root, padding=10)

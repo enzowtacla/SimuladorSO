@@ -1,3 +1,4 @@
+# arquivo utilizado para definir o que será importado ao importar o pacote Simulador
 from .interface import Interface
 from .SO import SO
 from .tarefa import Tarefa, Evento
