@@ -279,10 +279,11 @@ class Interface:
         self.alternar_botoes(enabled=True)
         messagebox.showinfo("Simulação Concluída", "A simulação de todas as tarefas foi finalizada.")
         self.configs_atuais = self.so.get_config_atual()
-        self.so.limpeza_sistema()
         # Pergunta se o usuário quer salvar o gráfico
         if messagebox.askyesno("Salvar Gráfico", "Deseja salvar o gráfico de Gantt como PNG?"):
             self.salvar_gantt()
+            
+        self.so.limpeza_sistema()
 
     def inicializa_interface(self):
         """Inicializa todos os elementos da GUI com base no estado do SO."""

@@ -1,102 +1,91 @@
-# --- Makefile para Simulador com Nuitka (Tkinter + Matplotlib) ---
+# --- Makefile v4.1 (FINAL - Corrige .spec E o bug do PIL/Matplotlib) ---
 
-# O seu script Python principal (ex: main.py, app.py)
+# --- Configuração ---
+VENV_NAME = venv
 MAIN_SCRIPT = main.py
-MAIN_SCRIPT_NAME = main
+TARGET_EXEC = top_simulador
+SPEC_FILE = $(TARGET_EXEC).spec
 
-# O nome do executável de saída
-TARGET_EXEC = simulador_SO
+# --- Comandos do VENV ---
+PYTHON = $(VENV_NAME)/bin/python3
+PIP = $(VENV_NAME)/bin/pip
+PACKAGER = $(VENV_NAME)/bin/pyinstaller
 
-# O comando do compilador Nuitka
-COMPILER = python3 -m nuitka
+# --- Flags para GERAÇÃO do .spec (Com a correção do PIL) ---
+PYINSTALLER_FLAGS_GEN = --onedir --windowed --name=$(TARGET_EXEC) \
+                        --collect-all matplotlib \
+                        --collect-all mpl_toolkits \
+                        --hidden-import=PIL._tkinter_finder
 
-NUITKA_FLAGS_FINAL = --onefile --standalone --enable-plugin=tk-inter --enable-plugin=matplotlib
-NUITKA_FLAGS_TEST = --standalone --enable-plugin=tk-inter --enable-plugin=matplotlib
+# --- Caminhos ---
+FINAL_EXEC_PATH = dist/$(TARGET_EXEC)/$(TARGET_EXEC)
 
-# Alvo padrão (make)
+# --- Alvos Principais ---
 all: compile
 
-# Verifica se Python está instalado (NECESSÁRIO para compilação)
-check-python:
-	@echo "--- Verificando Python (NECESSÁRIO para compilação) ---"
-	@which python3 >/dev/null 2>&1 || (echo "❌ Python 3 é OBRIGATÓRIO para compilar com Nuitka!" && echo "📦 Instale com: sudo apt-get install python3 python3-pip python3-tk" && exit 1)
-	@python3 --version
-	@echo "✅ Python 3 OK (necessário para build)"
+# Cria o ambiente virtual
+$(VENV_NAME):
+	@echo "--- Criando ambiente virtual limpo em [$(VENV_NAME)] ---"
+	python3 -m venv $(VENV_NAME)
 
-# Instala dependências de BUILD
-install-build-deps: check-python
-	@echo "--- Instalando dependências para COMPILAÇÃO ---"
-	pip3 install --user nuitka matplotlib
-	@echo "--- Dependências de build instaladas ---"
+# Instala dependências DENTRO do venv
+install-build-deps: $(VENV_NAME)
+	@echo "--- Instalando dependências DENTRO do venv ---"
+	$(PIP) install --upgrade pip wheel
+	$(PIP) install --force-reinstall pyinstaller "matplotlib==3.7.5"
+	@echo "--- Dependências de build (isoladas) instaladas ---"
 
-# Verifica tkinter (necessário para compilação)
-check-tkinter: check-python
-	@echo "--- Verificando tkinter ---"
-	@python3 -c "import tkinter; print('✅ tkinter OK')" || (echo "❌ tkinter necessário para build. Instale: sudo apt-get install python3-tk" && exit 1)
+# 1. Gera o arquivo .spec (que estará quebrado)
+# O '-' ignora o erro e o '|| true' garante que o make continue
+generate-spec: install-build-deps
+	@echo "--- 1. Gerando arquivo .spec (pode estar quebrado) ---"
+	-$(PACKAGER) --specpath . $(PYINSTALLER_FLAGS_GEN) $(MAIN_SCRIPT) || true
+	@test -f $(SPEC_FILE) || (echo "❌ Falha ao gerar o .spec!" && exit 1)
+	@echo "--- .spec gerado ---"
 
-# Alvo de compilação FINAL (lento)
-compile: check-python check-tkinter install-build-deps
-	@echo "--- Compilando [FINAL] com Nuitka ---"
-	@echo "ℹ️  Python é necessário APENAS para compilação"
-	@echo "🚀 O executável final NÃO precisará de Python!"
-	$(COMPILER) $(NUITKA_FLAGS_FINAL) $(MAIN_SCRIPT) -o $(TARGET_EXEC)
-	@echo "--- ✅ Compilação final concluída: ./"$(TARGET_EXEC)" ---"
-	@echo "🎯 Este executável pode rodar em qualquer máquina Linux (sem Python)!"
+# 2. Edita o .spec para remover a linha quebrada
+patch-spec: generate-spec
+	@echo "--- 2. Removendo referências ao lixo 'SimuladorSO' do .spec ---"
+	sed -i "/SimuladorSO/d" $(SPEC_FILE)
+	@echo "--- .spec corrigido ---"
 
-# Alvo de compilação de TESTE (rápido)
-test-build: check-python check-tkinter install-build-deps
-	@echo "--- Compilando [TESTE] com Nuitka ---"
-	$(COMPILER) $(NUITKA_FLAGS_TEST) $(MAIN_SCRIPT) -o $(TARGET_EXEC)
-	@echo "--- Build de teste concluído ---"
+# 3. Compila usando o .spec CORRIGIDO
+compile: patch-spec
+	@echo "--- 3. Compilando usando o .spec corrigido ---"
+	$(PACKAGER) --clean $(SPEC_FILE)
+	@echo "--- ✅ Empacotamento final concluído: $(FINAL_EXEC_PATH) ---"
 
-# Executa o executável (NÃO precisa de Python)
+# Executa o executável final
 run:
-	@echo "--- Executando simulador standalone ---"
-	@test -f $(TARGET_EXEC) || (echo "❌ Executável não encontrado! Execute 'make compile' primeiro." && exit 1)
-	@echo "ℹ️  Este executável NÃO precisa de Python instalado!"
-	./$(TARGET_EXEC)
+	@echo "--- Executando simulador standalone (da pasta dist/) ---"
+	@test -f $(FINAL_EXEC_PATH) || (echo "❌ Executável não encontrado! Execute 'make compile' primeiro." && exit 1)
+	./$(FINAL_EXEC_PATH)
 	@echo "--- Execução concluída ---"
 
-# Executa no Python (para desenvolvimento)
-run-dev: check-python
-	@echo "--- Executando no interpretador Python ---"
-	python3 $(MAIN_SCRIPT)
+# Executa no modo de desenvolvimento (usando o venv)
+run-dev: install-build-deps
+	@echo "--- Executando no interpretador Python (dentro do venv) ---"
+	$(PYTHON) $(MAIN_SCRIPT)
 
-# Limpa arquivos de build
+# Limpa TUDO, incluindo o venv
 clean:
-	@echo "--- Limpando arquivos de build ---"
-	rm -rf *.build *.dist *.onefile-build
+	@echo "--- Limpando TUDO (build, dist, spec, venv, execs) ---"
+	rm -rf build/ dist/ __pycache__/ *.spec $(VENV_NAME)
 	rm -f $(TARGET_EXEC) $(TARGET_EXEC).exe
 	@echo "--- Limpeza concluída ---"
 
-# Instala Python (Ubuntu/Debian) - NECESSÁRIO para compilação
-install-python-ubuntu:
-	@echo "--- Instalando Python 3 (NECESSÁRIO para build) ---"
-	sudo apt-get update
-	sudo apt-get install -y python3 python3-pip python3-tk python3-dev
-	@echo "--- Python 3 instalado (agora você pode compilar) ---"
-
 # Help
 help:
-	@echo "=== Simulador SO - Build com Nuitka ==="
+	@echo "=== Simulador SO - Build com VENV (Solução de Patch) ==="
 	@echo ""
-	@echo "🔧 PARA COMPILAR (precisa Python):"
-	@echo "  make compile          - Compila executável standalone"
-	@echo "  make test-build       - Build de teste"
+	@echo "🔧 PARA EMPACOTAR:"
+	@echo "  make compile    - Gera, corrige e compila o .spec (solução completa)"
 	@echo ""
-	@echo "🚀 PARA EXECUTAR (NÃO precisa Python):"
-	@echo "  make run              - Executa o executável compilado"
+	@echo "🚀 PARA EXECUTAR:"
+	@echo "  make run        - Executa o app empacotado"
 	@echo ""
 	@echo "🛠️  DESENVOLVIMENTO:"
-	@echo "  make run-dev          - Executa no Python (desenvolvimento)"
-	@echo "  make clean            - Remove arquivos de build"
-	@echo ""
-	@echo "📦 INSTALAÇÃO (se Python não estiver instalado):"
-	@echo "  make install-python-ubuntu  - Instala Python no Ubuntu"
-	@echo ""
-	@echo "📋 FLUXO COMPLETO:"
-	@echo "  1. Instalar Python (só na máquina de desenvolvimento)"
-	@echo "  2. make compile (gera executável standalone)"
-	@echo "  3. make run (executa - funciona sem Python!)"
+	@echo "  make run-dev    - Executa no Python (isolado no venv)"
+	@echo "  make clean      - Remove TUDO (dist, build, e o venv)"
 
-.PHONY: all compile test-build run run-dev clean check-python install-build-deps check-tkinter install-python-ubuntu help
+.PHONY: all compile run run-dev clean install-build-deps generate-spec patch-spec help
