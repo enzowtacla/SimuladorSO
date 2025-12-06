@@ -81,6 +81,9 @@ class Interface:
         self.clock_label = ttk.Label(control_frame, text="Clock: 0", font=("Arial", 14, "bold"))
         self.clock_label.pack(side='right', padx=10) # label do clock do sistema
 
+        self.scheduler_info_label = ttk.Label(control_frame, text="Escalonador: --", font=("Arial", 11))
+        self.scheduler_info_label.pack(side='right', padx=15)
+
         # Frame Principal
         main_frame = ttk.Frame(self.root, padding=10)
         main_frame.pack(fill='both', expand=True)
@@ -125,7 +128,7 @@ class Interface:
         # processamento dos dados da modal
 
         if modal_nivel_1.resultado:
-            self.configurar_sistema(modal_nivel_1.resultado['tipo_escalonador'], modal_nivel_1.resultado['quantum'], modal_nivel_1.resultado['tarefas'])
+            self.configurar_sistema(modal_nivel_1.resultado['tipo_escalonador'], modal_nivel_1.resultado['quantum'], modal_nivel_1.resultado['fator_envelhecimento'], modal_nivel_1.resultado['tarefas'])
 
         else:
             messagebox.showinfo("Configuração Manual não concluída", "A configuração manual foi cancelada.")
@@ -133,13 +136,13 @@ class Interface:
     def abrir_modal_ajuda(self):
         """Abre a modal de ajuda sobre o formato do arquivo de configuração."""
         ModalAjuda(self.root)
-        
-    def configurar_sistema(self, tipo_escalonador, quantum, tarefas) -> None:
+
+    def configurar_sistema(self, tipo_escalonador, quantum, fator_envelhecimento, tarefas) -> None:
         try:
             self.primeiro_passo_executado = False
             self.running = False
             self.so = SO(escalonador=None, filaTarefasProntas=[], filaTodasTarefas=[])
-            self.so.configurar_sistema_manual(tipo_escalonador, quantum, tarefas)
+            self.so.configurar_sistema_manual(tipo_escalonador, quantum, fator_envelhecimento, tarefas)
             self.historico_estados.clear() # Limpa o histórico
             self.limpa_interface()
             self.so.primeiro_passo()
@@ -180,7 +183,7 @@ class Interface:
                 configs_atuais = self.so.get_config_atual()
             self.historico_estados.clear()
             self.so = SO(escalonador=None, filaTarefasProntas=[], filaTodasTarefas=[])
-            self.so.configurar_sistema_manual(configs_atuais['tipo_escalonador'], configs_atuais['quantum'], configs_atuais['tarefas'])
+            self.so.configurar_sistema_manual(configs_atuais['tipo_escalonador'], configs_atuais['quantum'], configs_atuais['fator_envelhecimento'], configs_atuais['tarefas'])
             self.primeiro_passo_executado = False
             self.running = False
             self.limpa_interface()
@@ -345,7 +348,8 @@ class Interface:
         """Inicializa todos os elementos da GUI com base no estado do SO."""
         # Atualiza Clock
         self.clock_label.config(text=f"Clock: {self.so.clock_sistema}")
-        
+        nome = self.so.nome_tipo_escalonador if self.so.nome_tipo_escalonador else "Não Configurado"
+        self.scheduler_info_label.config(text=f"Escalonador: {nome}")
         # Atualiza Status das Tarefas
         self.atualiza_status_tarefas()
 

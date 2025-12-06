@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-
+from .tarefa import mapa_tipos_reverso, lista_eventos_tipos
 class ModalEvent(tk.Toplevel):
     """Modal para adicionar/editar eventos de tarefas."""
     def __init__(self, parent, dados_evento_existente=None):
@@ -14,14 +14,6 @@ class ModalEvent(tk.Toplevel):
         self.resultado = None # resultado final do modal (dados do evento ou None)
 
         defaults = dados_evento_existente or {} # usa dados existentes ou vazio
-
-        mapa_tipos_reverso = {
-                    "IO": "I/O", 
-                    "ML": "Mutex Lock", 
-                    "MU": "Mutex Unlock", 
-                    "SND": "Envio", 
-                    "RCV": "Recebimento"
-                } # mapeia abreviações para nomes completos
 
         tipo_abrev_padrao = defaults.get('tipo_evento', 'IO') # padrão para novo evento é I/O
         self.tipo_display_padrao = mapa_tipos_reverso.get(tipo_abrev_padrao, "I/O") # converte para display
@@ -49,12 +41,11 @@ class ModalEvent(tk.Toplevel):
         # campos para evento
 
         ttk.Label(frame, text="Tipo:").pack(anchor='w', pady=(0, 5)) # label do tipo
-        tipos_de_evento = ["I/O", "Mutex Lock", "Mutex Unlock", "Envio", "Recebimento"] # opções de tipo
         
         combo = ttk.Combobox(
             frame, 
             textvariable=self.tipo_var,
-            values=tipos_de_evento,
+            values=lista_eventos_tipos,
             state="readonly"
         ) # combobox do tipo
         combo.pack(fill='x', pady=(0, 10)) # empacota o combobox
@@ -106,12 +97,6 @@ class ModalEvent(tk.Toplevel):
             label_text = f"ID do Mutex (ex: M1, M2):" # label mutex
             ttk.Label(self.dynamic_frame, text=label_text).pack(anchor='w') # empacota o label
             ttk.Entry(self.dynamic_frame, textvariable=var_mid).pack(fill='x', pady=5) # entrada mutex id
-
-        elif tipo in ["Envio", "Recebimento"]: # tipo Envio/Recebimento de Dados
-            var_ing = tk.IntVar(value=defaults.get('instante', 0)) # instante padrão
-            self.dynamic_vars = {'instante': var_ing} # armazena as variáveis dinâmicas
-            ttk.Label(self.dynamic_frame, text="Instante inicial:").pack(anchor='w') # label instante
-            ttk.Entry(self.dynamic_frame, textvariable=var_ing).pack(fill='x', pady=5) # entrada instante
 
         else: # tipo desconhecido ou nenhum
             if not tipo:

@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from .modalEvento import ModalEvent
+from .tarefa import mapa_tipos_display
 from .cores import get_lista_cores_para_combobox, extrair_id_cor_do_texto, get_cor_nome, get_cor_hex
 class ModalTarefas(tk.Toplevel):
     """Modal para adicionar/editar tarefas."""
@@ -126,13 +127,6 @@ class ModalTarefas(tk.Toplevel):
         self.lista_eventos.delete(0, 'end') # limpa a lista atual
         
         # Mapa para converter 'IO' de volta para 'I/O'
-        mapa_tipos_display = {
-            "IO": "I/O", 
-            "ML": "Mutex Lock", 
-            "MU": "Mutex Unlock", 
-            "SND": "Envio", 
-            "RCV": "Recebimento"
-        }
 
         for evento in self.eventos: # itera sobre os eventos
             tipo_abrev = evento.get('tipo_evento', 'N/A') # obtém o tipo abreviado

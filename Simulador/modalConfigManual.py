@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from .modalTarefa import ModalTarefas
-from .escalonadores import lista_escalonadores
+from .escalonadores import lista_escalonadores, indice_escalonador
 from .cores import get_cor_hex
 class ModalConfigManual(tk.Toplevel):
     """Modal para configuração manual do simulador."""
@@ -17,6 +17,9 @@ class ModalConfigManual(tk.Toplevel):
         # Valores padrão ou existentes
         self.tipo_escalonador = self.configuracao_existente.get('tipo_escalonador', 'FCFS') if self.configuracao_existente else "FCFS"
         self.quantum = self.configuracao_existente.get('quantum', 4) if self.configuracao_existente else 4
+        val_env = self.configuracao_existente.get('fator_envelhecimento', 1) if self.configuracao_existente else 0
+        self.fator_envelhecimento = tk.IntVar(value=val_env)
+
         # define uma configuração padrão de tarefas
         self.tarefas_default = [{"id": "t01", "cor": get_cor_hex(0), "ingresso": 0, "duracao": 5, "prioridade_estatica": 1}, 
                         {"id": "t02", "cor": get_cor_hex(1), "ingresso": 2, "duracao": 3, "prioridade_estatica": 2}, 
@@ -53,10 +56,20 @@ class ModalConfigManual(tk.Toplevel):
         ) # combobox do tipo de escalonador
         escalonador_menu.pack(pady=5, padx=10, fill="x")
 
+        # dá o bind na modificação do combobox para verificar visibilidade dos campos
+        escalonador_menu.bind("<<ComboboxSelected>>", self._verificar_visibilidade_campos)
+
         # campo do quantum
         ttk.Label(frame, text="Quantum:").pack(pady=5) # label do quantum
         self.quantum = tk.IntVar(value=self.quantum) # variável do quantum
-        ttk.Entry(frame, textvariable=self.quantum).pack(pady=5, padx=10, fill="x") # entrada do quantum
+        self.entry_quantum = ttk.Entry(frame, textvariable=self.quantum)
+        self.entry_quantum.pack(pady=5, padx=10, fill="x")
+
+        # Criamos um frame container para poder esconder/mostrar o bloco inteiro
+        self.frame_envelhecimento = ttk.Frame(frame)
+        
+        ttk.Label(self.frame_envelhecimento, text="Fator de Envelhecimento:").pack(pady=5)
+        ttk.Entry(self.frame_envelhecimento, textvariable=self.fator_envelhecimento).pack(pady=5, padx=10, fill="x")
 
         # --- Botão para chamar a Modal das Tarefas ---
         ttk.Button(
@@ -104,6 +117,19 @@ class ModalConfigManual(tk.Toplevel):
         
         ttk.Button(btn_frame, text="Salvar", command=self._on_salvar).pack(side='left', padx=5)
         ttk.Button(btn_frame, text="Cancelar", command=self._on_cancelar).pack(side='left', padx=5)
+
+        self._verificar_visibilidade_campos()
+
+    def _verificar_visibilidade_campos(self, event=None):
+        """Mostra ou esconde campos dependendo do escalonador selecionado."""
+        selecao = self.tipo_escalonador.get()
+        
+        if selecao == lista_escalonadores[indice_escalonador["PRIOPEnv"]]:
+            # mostra o frame do envelhecimento
+            self.frame_envelhecimento.pack(after=self.entry_quantum, pady=5, padx=10, fill="x")
+        else:
+            # esconde o frame do envelhecimento
+            self.frame_envelhecimento.pack_forget()
 
     def _abrir_modal_tarefas(self):
         """Abre o modal para adicionar/editar tarefas."""
@@ -203,9 +229,19 @@ class ModalConfigManual(tk.Toplevel):
             if not self.tarefas: # verifica se tarefas foram adicionadas
                 messagebox.showwarning("Aviso", "Nenhuma tarefa foi adicionada. Salvando configuração vazia.")
 
+            fator_env = 0
+            if self.tipo_escalonador.get() == lista_escalonadores[indice_escalonador["PRIOPEnv"]]:
+                try:
+                    fator_env = self.fator_envelhecimento.get()
+                    if fator_env <= 0:
+                        return (False, "O Fator de Envelhecimento deve ser maior que 0.")
+                except:
+                     return (False, "Fator de Envelhecimento inválido.")
+
             dados_finais = {
                 "tipo_escalonador": self.tipo_escalonador.get(),
                 "quantum": self.quantum.get(),
+                "fator_envelhecimento": fator_env,
                 "tarefas": self.tarefas
             } # dados finais da configuração
             return (True, dados_finais) # retorna sucesso com os dados
