@@ -1,18 +1,6 @@
 from dataclasses import dataclass
 from typing import List
-lista_eventos_tipos = ["IO", "ML", "MU"]  
-mapa_tipos_display = {
-            "IO": "I/O", 
-            "ML": "Mutex Lock", 
-            "MU": "Mutex Unlock", 
-            "SND": "Envio", 
-            "RCV": "Recebimento"
-        }
-@dataclass
-class Evento:  # Contém as informações de cada evento
-    tipo: str    # Tipo do evento: I/O, Mutex Lock (ML), Mutex Unlock (MU) -- maioria ainda não tratados
-    instante:int # Tempo qe começo do evento
-    duracao: int  # Tempo de duração do evento
+from .eventos import *
 
 @dataclass
 class Tarefa:   #Contém as informações de cada tarefa
@@ -21,6 +9,7 @@ class Tarefa:   #Contém as informações de cada tarefa
     ingresso:  int  # Tempo de ingresso da tarefa
     duracao:  int   # Duração da tarefa
     prioridade_estatica: int    # Prioridade da tarefa
+    prioridade_dinamica: int  # Prioridade dinâmica (pode ser alterada durante a execução)
     eventos: List[Evento] # Lista de eventos na tarefa
     evento_bloqueio_atual: Evento = None  # Evento que causou o bloqueio atual
     estado: str = "aguardando" # Estado atual da tarefa: pronta, executando, bloqueada, finalizada
@@ -33,6 +22,7 @@ class Tarefa:   #Contém as informações de cada tarefa
     def __post_init__(self):
         # Inicializa o tempo restante com a duração total
         self.t_restante = self.duracao
+        self.prioridade_dinamica = self.prioridade_estatica
         # se a tarefa já ingressa no tempo 0, ela fica pronta imediatamente
         # do contrario, fica aguardando seu ingresso
         if self.ingresso == 0:
@@ -74,6 +64,10 @@ class Tarefa:   #Contém as informações de cada tarefa
                     # armazenar o evento de bloqueio atual
                     self.evento_bloqueio_atual = evento
                     break  
+
+    def resetar_prioridade_dinamica(self) -> None:
+        """Reseta a prioridade dinâmica para a prioridade estática."""
+        self.prioridade_dinamica = self.prioridade_estatica
 
     # métodos para alterar o estado da tarefa
     def bloquear(self) -> None:
