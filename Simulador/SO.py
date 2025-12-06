@@ -4,7 +4,6 @@ import os
 
 from .tarefa import Tarefa, Evento
 from .escalonadores import *
-from .cores import get_cor_by_hex
 
 # a classe do sistema operacional
 @dataclass
@@ -20,7 +19,7 @@ class SO:
     nome_tipo_escalonador: str = "" # guarda o nome do tipo de escalonador usado atualmente
     tarefa_executando_anterior: Tarefa = None  # guarda a tarefa que estava executando no passo anterior
     fator_envelhecimento: int = 0  # fator de envelhecimento para escalonadores que o utilizam
-    
+
     # configura o sistema operacional a partir de um arquivo de configuração
     def configurar_sistema(self, filepath: str) -> None:
         """Lê o arquivo de configuração e inicializa o sistema operacional."""
@@ -35,7 +34,11 @@ class SO:
         with open(filepath, "r") as arquivo:
             linhas = arquivo.readlines()
             # Primeira linha: algoritmo_escalonamento; quantum
-            tipo_escalonador, quantum = linhas[0].strip().split(";")
+            campos = linhas[0].strip().split(";")
+            tipo_escalonador = campos[0]
+            quantum = campos[1]
+            if self.nome_tipo_escalonador == lista_escalonadores[indice_escalonador["PRIOPEnv"]]:  # PRIOP com envelhecimento
+                self.fator_envelhecimento = int(campos[2])  # define um fator de envelhecimento
             self.criar_escalonador(tipo_escalonador)
             self.quantum = int(quantum)
 
@@ -44,6 +47,8 @@ class SO:
                 campos = linha.strip().split(";") # separa os campos da linha
                 id = campos[0]
                 cor = campos[1]
+                if not cor.startswith("#"):
+                    cor = f"#{cor}"  # adiciona o '#' se não estiver presente
                 ingresso = int(campos[2])
                 duracao = int(campos[3])
                 prioridade_estatica = int(campos[4])
@@ -77,15 +82,17 @@ class SO:
                     ingresso=int(ingresso),
                     duracao=int(duracao),
                     prioridade_estatica=int(prioridade_estatica),
+                    prioridade_dinamica=int(prioridade_estatica),
                     eventos=lista_eventos,
                 )
 
                 # adiciona a tarefa à fila de todas as tarefas
                 self.adicionar_tarefa(tarefa)
-    
-    def configurar_sistema_manual(self, tipo_escalonador: str, quantum: int, tarefas) -> None:
+
+    def configurar_sistema_manual(self, tipo_escalonador: str, quantum: int, fator_envelhecimento: int, tarefas) -> None:
         """Configura o sistema operacional manualmente."""
         self.limpeza_sistema() # limpa o sistema antes de configurar
+        self.fator_envelhecimento = fator_envelhecimento # define o fator de envelhecimento
         self.criar_escalonador(tipo_escalonador) # cria o escalonador
         self.setar_quantum(quantum) # define o quantum
 
@@ -104,6 +111,7 @@ class SO:
                 ingresso=tarefa['ingresso'],
                 duracao=tarefa['duracao'],
                 prioridade_estatica=tarefa['prioridade_estatica'],
+                prioridade_dinamica=tarefa['prioridade_estatica'],
                 eventos=eventos_convertidos)
             tarefas_convertidas.append(tarefa_convertida) # adiciona a tarefa convertida à lista
         self.setar_tarefas(tarefas_convertidas) # define a lista de tarefas no sistema operacional
@@ -126,6 +134,7 @@ class SO:
         return {
             'tipo_escalonador': self.nome_tipo_escalonador,
             'quantum': self.quantum,
+            'fator_envelhecimento': self.fator_envelhecimento,
             'tarefas': tarefas
         }
 
@@ -140,7 +149,7 @@ class SO:
     def criar_escalonador(self, tipo: str) -> None:
         """Cria o escalonador apropriado com base no tipo especificado."""
         self.nome_tipo_escalonador = tipo # armazena o nome do tipo de escalonador
-        self.escalonador = Escalonador.criar_escalonador(tipo, self.filaTarefasProntas) # cria o escalonador usando a fábrica
+        self.escalonador = Escalonador.criar_escalonador(tipo, self.filaTarefasProntas, self.fator_envelhecimento) # cria o escalonador usando a fábrica
 
     def adicionar_tarefa(self, tarefa: Tarefa) -> None:
         """Adiciona uma tarefa à fila de tarefas geral"""
