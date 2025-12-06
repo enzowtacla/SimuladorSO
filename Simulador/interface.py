@@ -321,8 +321,11 @@ class Interface:
     def atualiza_status_tarefas(self):
                 # Atualiza Status das Tarefas
         status_lines = []
+        status_lines.append("Eventos: ver na aba de configuração manual")
         for tarefa in self.so.filaTodasTarefas:
             line = f"ID: {tarefa.id} | Estado: {tarefa.estado} | Restante: {tarefa.t_restante} | Executado: {tarefa.t_executado}"
+            line += f" | Prioridade Estática: {tarefa.prioridade_estatica} | Prioridade Dinâmica: {tarefa.prioridade_dinamica}"
+            line += f" | Ingresso: {tarefa.ingresso} | Duração: {tarefa.duracao}"
             if tarefa.bloqueada:
                 line += f" (Bloqueado por {tarefa.t_bloqueado}/{tarefa.evento_bloqueio_atual.duracao})"
             status_lines.append(line)
