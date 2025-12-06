@@ -1,7 +1,8 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from .modalTarefa import ModalTarefas
-
+from .escalonadores import lista_escalonadores
+from .cores import get_cor_hex
 class ModalConfigManual(tk.Toplevel):
     """Modal para configuração manual do simulador."""
     def __init__(self, parent, configuracao_existente=None):
@@ -17,9 +18,9 @@ class ModalConfigManual(tk.Toplevel):
         self.tipo_escalonador = self.configuracao_existente.get('tipo_escalonador', 'FCFS') if self.configuracao_existente else "FCFS"
         self.quantum = self.configuracao_existente.get('quantum', 4) if self.configuracao_existente else 4
         # define uma configuração padrão de tarefas
-        self.tarefas_default = [{"id": "t01", "cor": 0, "ingresso": 0, "duracao": 5, "prioridade": 1}, 
-                        {"id": "t02", "cor": 1, "ingresso": 2, "duracao": 3, "prioridade": 2}, 
-                        {"id": "t03", "cor": 2, "ingresso": 4, "duracao": 4, "prioridade": 1}]
+        self.tarefas_default = [{"id": "t01", "cor": get_cor_hex(0), "ingresso": 0, "duracao": 5, "prioridade_estatica": 1}, 
+                        {"id": "t02", "cor": get_cor_hex(1), "ingresso": 2, "duracao": 3, "prioridade_estatica": 2}, 
+                        {"id": "t03", "cor": get_cor_hex(2), "ingresso": 4, "duracao": 4, "prioridade_estatica": 1}]
         
         # carregar tarefas existentes ou padrão
         self.tarefas = self.configuracao_existente.get('tarefas', self.tarefas_default) if self.configuracao_existente else self.tarefas_default
@@ -47,7 +48,7 @@ class ModalConfigManual(tk.Toplevel):
         escalonador_menu = ttk.Combobox(
             frame, 
             textvariable=self.tipo_escalonador,
-            values=["FCFS", "PRIOP", "SRTF"], 
+            values=lista_escalonadores, 
             state="readonly"
         ) # combobox do tipo de escalonador
         escalonador_menu.pack(pady=5, padx=10, fill="x")
@@ -127,7 +128,7 @@ class ModalConfigManual(tk.Toplevel):
                 f"{novo_id}: "
                 f"Ingr: {tarefa_data.get('ingresso', 'N/A')}, "
                 f"Dur: {tarefa_data.get('duracao', 'N/A')}, "
-                f"Prio: {tarefa_data.get('prioridade', 'N/A')}, "
+                f"Prio: {tarefa_data.get('prioridade_estatica', 'N/A')}, "
                 f"Eventos: {len(tarefa_data.get('eventos', []))}"
             ) # texto de exibição da tarefa
             self.lista_tarefas.insert('end', display_text) # insere o texto na lista

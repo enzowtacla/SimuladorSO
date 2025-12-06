@@ -40,3 +40,9 @@ def get_lista_cores_para_combobox():
 def extrair_id_cor_do_texto(texto_combobox):
     """Extrai o ID da cor do texto do combobox"""
     return int(texto_combobox.split(':')[0])
+
+def get_cor_by_hex(hex_code):
+    """Retorna o ID da cor pelo código hex"""
+    if hex_code in CORES_TAREFAS:
+        return CORES_TAREFAS.index(hex_code)
+    return -1  # Retorna -1 se a cor não for encontrada

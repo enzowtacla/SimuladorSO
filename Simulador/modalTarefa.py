@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from .modalEvento import ModalEvent
-from .cores import get_lista_cores_para_combobox, extrair_id_cor_do_texto, get_cor_nome
+from .cores import get_lista_cores_para_combobox, extrair_id_cor_do_texto, get_cor_nome, get_cor_hex
 class ModalTarefas(tk.Toplevel):
     """Modal para adicionar/editar tarefas."""
     def __init__(self, parent, dados_tarefa_existente=None):
@@ -24,8 +24,8 @@ class ModalTarefas(tk.Toplevel):
         self.cor_tarefa_var = tk.StringVar(value=f"{defaults.get('cor', 1)}: {get_cor_nome(defaults.get('cor', 1))}") # cor padrão
         self.ingresso_tarefa_var = tk.IntVar(value=defaults.get('ingresso', 0)) # ingresso padrão 0
         self.duracao_tarefa_var = tk.IntVar(value=defaults.get('duracao', 5)) # duração padrão 5
-        self.prioridade_tarefa_var = tk.IntVar(value=defaults.get('prioridade', 1)) # prioridade padrão 1
-        
+        self.prioridade_tarefa_var = tk.IntVar(value=defaults.get('prioridade_estatica', 1)) # prioridade padrão 1
+
         self.criar_widgets() # cria os widgets da interface
 
         self._atualizar_lista_eventos_ui() # popula a lista de eventos na UI
@@ -239,10 +239,10 @@ class ModalTarefas(tk.Toplevel):
 
             # --- Se tudo estiver válido, constrói o dicionário final ---
             dados_finais = {
-                "cor": cor_id,
+                "cor": get_cor_hex(cor_id),
                 "ingresso": ingresso_tarefa,
                 "duracao": duracao_tarefa,
-                "prioridade": prioridade_tarefa,
+                "prioridade_estatica": prioridade_tarefa,
                 "eventos": self.eventos
             }
             return (True, dados_finais) # retorna sucesso com os dados

@@ -6,10 +6,12 @@ matplotlib.use("TkAgg")
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 
+import copy
+from typing import List
 from .SO import SO
 from .modalConfigManual import ModalConfigManual
 from .modalAjuda import ModalAjuda
-from .cores import CORES_TAREFAS, COR_TAREFA_NAO_EXECUTANDO
+from .cores import COR_TAREFA_NAO_EXECUTANDO
 class Interface:
     """Classe principal da interface do simulador."""
     def __init__(self, root):
@@ -20,6 +22,9 @@ class Interface:
         self.config_filepath = "config.txt"  # Caminho padrão
         self.running = False # Flag para execução contínua
         self.primeiro_passo_executado = False # Flag para o primeiro passo
+        self.historico_estados: List[SO] = []  # Histórico de estados do SO
+        self.historico_desenhos_gantt = []
+
         # Atributos do Gantt
         self.gantt_fig: Figure = None
         self.gantt_ax = None
@@ -60,6 +65,9 @@ class Interface:
 
         self.reset_button = ttk.Button(control_frame, text="Resetar Simulação", command=self.reseta_simulacao)
         self.reset_button.pack(side='left', padx=5) # botão de resetar simulação
+
+        self.back_button = ttk.Button(control_frame, text="Retroceder", command=self.retroceder)
+        self.back_button.pack(side='left', padx=5)
 
         self.step_button = ttk.Button(control_frame, text="Executar Passo", command=self.passo)
         self.step_button.pack(side='left', padx=5) # botão de executar passo
@@ -132,7 +140,7 @@ class Interface:
             self.running = False
             self.so = SO(escalonador=None, filaTarefasProntas=[], filaTodasTarefas=[])
             self.so.configurar_sistema_manual(tipo_escalonador, quantum, tarefas)
-
+            self.historico_estados.clear() # Limpa o histórico
             self.limpa_interface()
             self.so.primeiro_passo()
             self.inicializa_interface()
@@ -170,6 +178,7 @@ class Interface:
                 configs_atuais = self.configs_atuais
             else:
                 configs_atuais = self.so.get_config_atual()
+            self.historico_estados.clear()
             self.so = SO(escalonador=None, filaTarefasProntas=[], filaTodasTarefas=[])
             self.so.configurar_sistema_manual(configs_atuais['tipo_escalonador'], configs_atuais['quantum'], configs_atuais['tarefas'])
             self.primeiro_passo_executado = False
@@ -186,7 +195,7 @@ class Interface:
         
         # Limpa os eixos
         self.gantt_ax.clear()
-        
+        self.historico_desenhos_gantt.clear()
         # Configura os eixos para o Gantt
         tarefas = self.so.filaTodasTarefas
         num_tarefas = len(tarefas)
@@ -208,6 +217,50 @@ class Interface:
         self.gantt_fig.tight_layout()
         self.gantt_canvas_widget.draw()
 
+    def retroceder(self):
+        """Volta um passo na simulação."""
+        
+        if not self.historico_estados:
+            messagebox.showinfo("Aviso", "Não há estados anteriores para retroceder.")
+            return
+
+        # Recupera o último estado salvo (pop remove o último item da lista)
+        estado_anterior = self.historico_estados.pop()
+
+        # Substitui o SO atual pelo antigo
+        self.so = estado_anterior
+
+        # Ajusta flags se necessário
+        # Se voltamos para o tempo 0, o primeiro passo não foi executado
+        if self.so.clock_sistema == 0:
+            self.primeiro_passo_executado = False
+        
+        self.running = False # Geralmente queremos pausar ao voltar
+        self.alternar_botoes(enabled=True)
+
+        # Atualiza a tela inteira com os dados do "passado"
+        self.inicializa_interface()
+        if self.historico_desenhos_gantt:
+            # Pega a lista de desenhos feitos no último passo
+            ultimos_desenhos = self.historico_desenhos_gantt.pop()
+            
+            # Remove cada desenho do gráfico
+            for artista in ultimos_desenhos:
+                artista.remove()
+
+        # Ajusta o eixo X para voltar ao tempo anterior
+        t = self.so.clock_sistema
+        self.gantt_ax.set_xlim(left=max(0, t - 50), right=t + 5)
+        
+        # Redesenha o canvas (agora sem as barras removidas)
+        self.gantt_canvas_widget.draw()
+        
+
+    def salvar_estado_atual(self):
+        """Helper para salvar o histórico."""
+        snapshot = copy.deepcopy(self.so)
+        self.historico_estados.append(snapshot)
+
     def passo(self):
         """Executa um único passo"""
 
@@ -218,6 +271,9 @@ class Interface:
             messagebox.showwarning("Aviso", "Nenhuma tarefa carregada. Carregue um arquivo de configuração.")
             return
         
+        # guarda o estado anterior do sistema operacional
+        self.salvar_estado_atual()
+
         if not self.primeiro_passo_executado:
             self.atualiza_interface()
             self.primeiro_passo_executado = True
@@ -251,7 +307,7 @@ class Interface:
             self.root.after(100, self.loop_executar)
 
         elif self.running:
-
+            self.salvar_estado_atual()
             if not self.so.executar_passo():
                 self.termina_simulacao()
             else:
@@ -299,25 +355,36 @@ class Interface:
         self.clock_label.config(text=f"Clock: {self.so.clock_sistema+1}")
         
         self.atualiza_status_tarefas()
-
+        
         # Atualiza Gráfico de Gantt
         t = self.so.clock_sistema
 
         x_start = t # O tick atual começa no tempo t e vai até t+1
 
+        desenhos_agora = []
+
         for i, tarefa in enumerate(self.so.filaTodasTarefas):
+
             if tarefa.executando:
-                # Usa 'cor' do config como índice
-                cor_hex = CORES_TAREFAS[tarefa.cor % len(CORES_TAREFAS)]
+                cor_hex = tarefa.cor
                 # Desenha uma barra horizontal
                 # y=i (posição da tarefa), width=1 (duração de 1 tick), left=x_start
-                self.gantt_ax.barh(i, width=1, left=x_start, height=0.7,
+                container = self.gantt_ax.barh(i, width=1, left=x_start, height=0.7,
                                  color=cor_hex, edgecolor='black', alpha=0.8)
+
+                for retangulo in container:
+                    desenhos_agora.append(retangulo)
+
             elif tarefa.aguardando or tarefa.finalizada:
-                    self.gantt_ax.plot(x_start + 0.5, i, 'o', color='#AAAAAA', markersize=2)
+                    retorno_desenho = self.gantt_ax.plot(x_start + 0.5, i, 'o', color='#AAAAAA', markersize=2)
+                    desenhos_agora.extend(retorno_desenho)
             else:
-                    self.gantt_ax.barh(i, width=1, left=x_start, height=0.7,
+                    container = self.gantt_ax.barh(i, width=1, left=x_start, height=0.7,
                                      color=COR_TAREFA_NAO_EXECUTANDO, edgecolor='black', alpha=0.3)
+                    for retangulo in container:
+                        desenhos_agora.append(retangulo)
+
+        self.historico_desenhos_gantt.append(desenhos_agora)
         
         # Auto-scroll: Ajusta o limite do eixo X para "seguir" o tempo
         # Mostra os últimos 50 ticks de tempo, ou começa do 0
@@ -331,6 +398,7 @@ class Interface:
         state = 'normal' if enabled else 'disabled'
         self.load_button.config(state=state)
         self.reset_button.config(state=state)
+        self.back_button.config(state=state)
         self.step_button.config(state=state)
         self.run_button.config(state=state)
 

@@ -3,15 +3,14 @@ from typing import List, Union
 import os
 
 from .tarefa import Tarefa, Evento
-from .escalonadorFIFO import EscalonadorFIFO
-from .escalonadorPrioP import EscalonadorPRIOP
-from .escalonadorSRTF import EscalonadorSRTF
+from .escalonadores import *
+from .cores import get_cor_by_hex
 
 # a classe do sistema operacional
 @dataclass
 class SO:
     """Representa o sistema operacional que gerencia o escalonamento das tarefas."""
-    escalonador: Union[EscalonadorFIFO, EscalonadorPRIOP, EscalonadorSRTF] # Escalonador usado pelo sistema operacional -- adicionar os tipos aqui quando criar mais
+    escalonador: Escalonador # Escalonador usado pelo sistema operacional -- adicionar os tipos aqui quando criar mais
     filaTodasTarefas: List[Tarefa]  # Fila com todas as tarefas
     filaTarefasProntas: List[Tarefa]  # Fila com tarefas prontas para execução
     clock_sistema: int = 0  # Relógio do sistema
@@ -19,7 +18,9 @@ class SO:
     ingresso_fila_prontas: bool = False  # Indica se tarefas ingressaram na fila de prontas recentemente
     tempo_executando_atual: int = 0  # Tempo que a tarefa atual está executando
     nome_tipo_escalonador: str = "" # guarda o nome do tipo de escalonador usado atualmente
-
+    tarefa_executando_anterior: Tarefa = None  # guarda a tarefa que estava executando no passo anterior
+    fator_envelhecimento: int = 0  # fator de envelhecimento para escalonadores que o utilizam
+    
     # configura o sistema operacional a partir de um arquivo de configuração
     def configurar_sistema(self, filepath: str) -> None:
         """Lê o arquivo de configuração e inicializa o sistema operacional."""
@@ -42,10 +43,10 @@ class SO:
             for linha in linhas[1:]:
                 campos = linha.strip().split(";") # separa os campos da linha
                 id = campos[0]
-                cor = int(campos[1])
+                cor = campos[1]
                 ingresso = int(campos[2])
                 duracao = int(campos[3])
-                prioridade = int(campos[4])
+                prioridade_estatica = int(campos[4])
                 
                 # inicializa a lista de eventos
                 lista_eventos: List[Evento] = []
@@ -72,10 +73,10 @@ class SO:
                 # cria a tarefa com os dados lidos
                 tarefa = Tarefa(
                     id=id,
-                    cor=int(cor),
+                    cor=cor,
                     ingresso=int(ingresso),
                     duracao=int(duracao),
-                    prioridade=int(prioridade),
+                    prioridade_estatica=int(prioridade_estatica),
                     eventos=lista_eventos,
                 )
 
@@ -102,7 +103,7 @@ class SO:
                 cor=tarefa['cor'],
                 ingresso=tarefa['ingresso'],
                 duracao=tarefa['duracao'],
-                prioridade=tarefa['prioridade'],
+                prioridade_estatica=tarefa['prioridade_estatica'],
                 eventos=eventos_convertidos)
             tarefas_convertidas.append(tarefa_convertida) # adiciona a tarefa convertida à lista
         self.setar_tarefas(tarefas_convertidas) # define a lista de tarefas no sistema operacional
@@ -117,7 +118,7 @@ class SO:
                 'cor': tarefa.cor,
                 'ingresso': tarefa.ingresso,
                 'duracao': tarefa.duracao,
-                'prioridade': tarefa.prioridade,
+                'prioridade_estatica': tarefa.prioridade_estatica,
                 'eventos': [{'tipo_evento': evento.tipo, 'instante': evento.instante, 'duracao': evento.duracao} for evento in tarefa.eventos]
             }
             tarefas.append(tarefa_dict) # adiciona a tarefa à lista
@@ -139,14 +140,7 @@ class SO:
     def criar_escalonador(self, tipo: str) -> None:
         """Cria o escalonador apropriado com base no tipo especificado."""
         self.nome_tipo_escalonador = tipo # armazena o nome do tipo de escalonador
-        if tipo == "FCFS":
-            self.escalonador = EscalonadorFIFO(tarefas=self.filaTarefasProntas)
-        elif tipo == "PRIOP":
-            self.escalonador = EscalonadorPRIOP(tarefas=self.filaTarefasProntas)
-        elif tipo == "SRTF":
-            self.escalonador = EscalonadorSRTF(tarefas=self.filaTarefasProntas)
-        else:
-            raise ValueError("Tipo de escalonador desconhecido.")
+        self.escalonador = Escalonador.criar_escalonador(tipo, self.filaTarefasProntas) # cria o escalonador usando a fábrica
 
     def adicionar_tarefa(self, tarefa: Tarefa) -> None:
         """Adiciona uma tarefa à fila de tarefas geral"""
@@ -166,6 +160,7 @@ class SO:
 
         self.filaTodasTarefas.clear()
         self.filaTarefasProntas.clear()
+        self.tarefa_executando_anterior = None
         self.clock_sistema = 0
 
     def executar_tarefas(self) -> None:
@@ -222,10 +217,10 @@ class SO:
     def analisar_tarefas(self) -> None:
         """Analisa as tarefas após a execução do sistema operacional."""
         # verifica se há alguma tarefa executando
-        tarefa_executando = next((tarefa for tarefa in self.filaTodasTarefas if tarefa.executando), None)
-
+        self.tarefa_executando_anterior = next((tarefa for tarefa in self.filaTodasTarefas if tarefa.executando), None)
+        self.escalonador.tarefa_atual = self.tarefa_executando_anterior  # atualiza a tarefa atual no escalonador
         # verifica se há necessidade de escalonamento -- necessário quando há tarefas prontas e nenhuma executando, alguma tarefa ingressou na fila de prontas ou o quantum foi atingido
-        if (len(self.filaTarefasProntas) > 0 and tarefa_executando is None) or self.ingresso_fila_prontas or (self.quantum > 0 and self.tempo_executando_atual >= self.quantum):
+        if (len(self.filaTarefasProntas) > 0 and self.tarefa_executando_anterior is None) or self.ingresso_fila_prontas or (self.quantum > 0 and self.tempo_executando_atual >= self.quantum):
             for tarefa in self.filaTodasTarefas: # percorre todas as tarefas
                 if tarefa.executando: # se a tarefa estiver executando, para de executar
                     tarefa.ficar_pronta() # coloca a tarefa como pronta

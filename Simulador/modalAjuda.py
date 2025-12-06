@@ -69,14 +69,14 @@ class ModalAjuda(tk.Toplevel):
         # --- 2. Linhas de Tarefa ---
         self.text_area.insert(tk.END, "Linhas 2..N: Definição de Tarefas\n", "sub_header")
         self.text_area.insert(tk.END, "Formato: \n", "code")
-        self.text_area.insert(tk.END, "id;cor;ingresso;duracao;prioridade;lista_eventos\n\n", "code")
+        self.text_area.insert(tk.END, "id;cor;ingresso;duracao;prioridade_estatica;lista_eventos\n\n", "code")
         
         self.text_area.insert(tk.END, 
             "id: Identificador (ex: t01).\n"
-            "cor: ID numérico da cor.\n"
+            "cor: no formato RGB em Hexadecimal.\n"
             "ingresso: Tick de relógio que a tarefa entra no sistema (ex: 0).\n"
             "duracao: Duração total de execução da tarefa (ex: 5).\n"
-            "prioridade: Prioridade (ex: 1). (Usado por PRIOP).\n"
+            "prioridade_estatica: Prioridade Estática (ex: 1). (Usado por PRIOP).\n"
             "lista_eventos: Lista de eventos (detalhes abaixo).\n\n"
         )
 
@@ -91,16 +91,9 @@ class ModalAjuda(tk.Toplevel):
         self.text_area.insert(tk.END, "  IO: (IO, ingresso, duracao)\n", "code")
         self.text_area.insert(tk.END, "  Mutex Lock: (ML, ingresso, id_mutex)\n", "code")
         self.text_area.insert(tk.END, "  Mutex Unlock: (MU, ingresso, id_mutex)\n", "code")
-        self.text_area.insert(tk.END, "  Envio: (SND, ingresso)\n", "code")
-        self.text_area.insert(tk.END, "  Recebimento: (RCV, ingresso)\n\n", "code")
         self.text_area.insert(tk.END, 
             "Exemplo de linha de tarefa COM eventos:\n", "code")
-        self.text_area.insert(tk.END, "t01;0;0;10;1;(IO,2,3)|(ML,6,M1)|(MU,8,M1)\n", "code")
+        self.text_area.insert(tk.END, "t01;F0E0D0;0;10;1;(IO,2,3)|(ML,6,M1)|(MU,8,M1)\n", "code")
         self.text_area.insert(tk.END, 
-            "(Tarefa t01, cor 0, ingresso 0, duração 10, prio 1, com I/O no tempo 2, Lock no tempo 6, Unlock no tempo 8)\n\n"
+            "(Tarefa t01, cor F0E0D0, ingresso 0, duração 10, prio 1, com I/O no tempo 2, Lock no tempo 6, Unlock no tempo 8)\n\n"
         )
-
-        # --- 4. IDs de Cores ---
-        self.text_area.insert(tk.END, "IDs de Cores Válidos\n", "sub_header")
-        cores_formatadas = "\n".join(get_lista_cores_para_combobox())
-        self.text_area.insert(tk.END, cores_formatadas)

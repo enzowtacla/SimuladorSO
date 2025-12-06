@@ -1,6 +1,13 @@
 from dataclasses import dataclass
 from typing import List
-
+lista_eventos_tipos = ["IO", "ML", "MU"]  
+mapa_tipos_display = {
+            "IO": "I/O", 
+            "ML": "Mutex Lock", 
+            "MU": "Mutex Unlock", 
+            "SND": "Envio", 
+            "RCV": "Recebimento"
+        }
 @dataclass
 class Evento:  # Contém as informações de cada evento
     tipo: str    # Tipo do evento: I/O, Mutex Lock (ML), Mutex Unlock (MU) -- maioria ainda não tratados
@@ -10,10 +17,10 @@ class Evento:  # Contém as informações de cada evento
 @dataclass
 class Tarefa:   #Contém as informações de cada tarefa
     id: str    # ID da tarefa
-    cor: int   # Cor no diagrama
+    cor: str   # Cor no diagrama
     ingresso:  int  # Tempo de ingresso da tarefa
     duracao:  int   # Duração da tarefa
-    prioridade: int    # Prioridade da tarefa
+    prioridade_estatica: int    # Prioridade da tarefa
     eventos: List[Evento] # Lista de eventos na tarefa
     evento_bloqueio_atual: Evento = None  # Evento que causou o bloqueio atual
     estado: str = "aguardando" # Estado atual da tarefa: pronta, executando, bloqueada, finalizada
