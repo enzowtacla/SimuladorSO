@@ -4,7 +4,7 @@ import os
 
 from .tarefa import Tarefa, Evento
 from .escalonadores import *
-
+from .cores import get_cor_hex, get_cor_by_hex
 # a classe do sistema operacional
 @dataclass
 class SO:
@@ -53,28 +53,6 @@ class SO:
                 duracao = int(campos[3])
                 prioridade_estatica = int(campos[4])
                 
-                # inicializa a lista de eventos
-                lista_eventos: List[Evento] = []
-
-                # lê os eventos, se houver
-                for campo in campos[5:]:
-                    if campo.strip(): 
-                        sub_campos = campo.strip().split(":") # separa os subcampos do evento
-                        tipo = sub_campos[0] # tipo do evento
-
-                        # se for I/O, possui tempo de início e duração
-                        if tipo == "IO":
-                            sub_campos_io = sub_campos[1].split("-") # separa tempo de início e duração
-                            tempo_inicio = int(sub_campos_io[0])
-                            duracao_evento = int(sub_campos_io[1])
-                            evento = Evento(tipo=tipo, instante=tempo_inicio, duracao=duracao_evento) # cria o evento
-                            lista_eventos.append(evento) # adiciona o evento à lista
-                        # se for MU ou ML, possui apenas tempo de início
-                        elif tipo == "MU" or tipo == "ML":
-                            tempo_inicio = int(sub_campos[1])
-                            evento = Evento(tipo=tipo, instante=tempo_inicio, duracao=0) # cria o evento
-                            lista_eventos.append(evento) # adiciona o evento à lista
-
                 # cria a tarefa com os dados lidos
                 tarefa = Tarefa(
                     id=id,
@@ -83,8 +61,12 @@ class SO:
                     duracao=int(duracao),
                     prioridade_estatica=int(prioridade_estatica),
                     prioridade_dinamica=int(prioridade_estatica),
-                    eventos=lista_eventos,
+                    eventos=[]
                 )
+                # lê os eventos, se houver
+                for campo in campos[5:]:
+                    if campo.strip(): 
+                        tarefa.adicionar_evento(campo, self)
 
                 # adiciona a tarefa à fila de todas as tarefas
                 self.adicionar_tarefa(tarefa)
@@ -99,20 +81,18 @@ class SO:
         # transformar tarefas em realmente uma lista de tarefas e eventos em reais eventos
         tarefas_convertidas: List[Tarefa] = [] # inicializa a lista de tarefas convertidas
         for tarefa in tarefas:
-            eventos_convertidos: List[Evento] = [] # inicializa a lista de eventos convertidos
-            # percorre os eventos da tarefa e cria objetos Evento
-            for evento in tarefa.get('eventos', []):
-                evento_convertido = Evento(evento['tipo_evento'], evento['instante'], evento.get('duracao')) # cria o evento
-                eventos_convertidos.append(evento_convertido) # adiciona o evento à lista
             # cria o objeto Tarefa com os dados convertidos
             tarefa_convertida = Tarefa (
                 id=tarefa['id'],
-                cor=tarefa['cor'],
+                cor=get_cor_hex(tarefa['cor']),
                 ingresso=tarefa['ingresso'],
                 duracao=tarefa['duracao'],
                 prioridade_estatica=tarefa['prioridade_estatica'],
                 prioridade_dinamica=tarefa['prioridade_estatica'],
-                eventos=eventos_convertidos)
+                eventos=[])
+            # percorre os eventos da tarefa e cria objetos Evento
+            for evento in tarefa.get('eventos', []):
+                tarefa_convertida.adicionar_evento(evento=evento, sistema=self) # adiciona o evento convertido à tarefa
             tarefas_convertidas.append(tarefa_convertida) # adiciona a tarefa convertida à lista
         self.setar_tarefas(tarefas_convertidas) # define a lista de tarefas no sistema operacional
 
@@ -123,11 +103,11 @@ class SO:
         for tarefa in self.filaTodasTarefas:
             tarefa_dict = {
                 'id': tarefa.id,
-                'cor': tarefa.cor,
+                'cor': get_cor_by_hex(tarefa.cor),
                 'ingresso': tarefa.ingresso,
                 'duracao': tarefa.duracao,
                 'prioridade_estatica': tarefa.prioridade_estatica,
-                'eventos': [{'tipo_evento': evento.tipo, 'instante': evento.instante, 'duracao': evento.duracao} for evento in tarefa.eventos]
+                'eventos': [{'tipo_evento': evento.tipo, 'instante': evento.instante, 'duracao': evento.duracao if evento.tipo == "IO" else None, 'mutex_id': evento.mutex_id if evento.tipo in ["ML", "MU"] else None} for evento in tarefa.eventos]
             }
             tarefas.append(tarefa_dict) # adiciona a tarefa à lista
         # retorna o dicionário com a configuração atual
@@ -244,3 +224,18 @@ class SO:
                 self.escalonador.escalonar() # chama o escalonador
             self.tempo_executando_atual = 0 # reseta o tempo de execução atual
 
+    def tratar_req_inicio_io(self, evento_io) -> None:
+        """Trata a requisição de início de I/O."""
+        pass  # Implementar a lógica de início de I/O aqui
+
+    def tratar_req_fim_io(self, evento_io) -> None:
+        """Trata a requisição de fim de I/O."""
+        pass  # Implementar a lógica de fim de I/O aqui
+    
+    def tratar_req_lock_mutex(self, evento_mutex) -> None:
+        """Trata a requisição de lock de mutex."""
+        pass  # Implementar a lógica de lock de mutex aqui
+
+    def tratar_req_unlock_mutex(self, evento_mutex) -> None:
+        """Trata a requisição de unlock de mutex."""
+        pass  # Implementar a lógica de unlock de mutex aqui

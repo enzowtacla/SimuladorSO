@@ -41,33 +41,42 @@ class Tarefa:   #Contém as informações de cada tarefa
 
         # se a tarefa estava bloqueada, verifica se já terminou o bloqueio
         elif self.bloqueada:
-
-            # se está bloqueada por tempo maior ou igual à duração do bloqueio, ela fica pronta
+            self.evento_bloqueio_atual.tratar_evento()
+    ''' # se está bloqueada por tempo maior ou igual à duração do bloqueio, ela fica pronta
             if self.t_bloqueado >= self.evento_bloqueio_atual.duracao:
                 self.ficar_pronta()
                 self.t_bloqueado = 0
             # senão, incrementa o tempo bloqueado
             else:
-                self.t_bloqueado += 1 
-
+                self.t_bloqueado += 1 '''
     # se a tarefa está executando, realiza as seguintes operações
     def executar(self) -> None:
         if self.executando:
+            for evento in self.eventos:
+                if evento.instante == self.t_executado:
+                    evento.tratar_evento()
+                    self.bloquear()
+                    self.evento_bloqueio_atual = evento
+                    break  
             # decrementa o tempo restante e incrementa o tempo executado
             self.t_restante -= 1
             self.t_executado += 1
-            # verifica se há algum evento de I/O a ser iniciado
-            for evento in self.eventos:
-                # se houver um evento de I/O no instante atual, bloqueia a tarefa
-                if evento.tipo == "IO" and evento.instante == self.t_executado:
-                    self.bloquear()
-                    # armazenar o evento de bloqueio atual
-                    self.evento_bloqueio_atual = evento
-                    break  
 
     def resetar_prioridade_dinamica(self) -> None:
         """Reseta a prioridade dinâmica para a prioridade estática."""
         self.prioridade_dinamica = self.prioridade_estatica
+
+    def adicionar_evento(self, campo, so) -> None:
+        """Adiciona um evento à lista de eventos da tarefa."""
+        self.eventos.append(Evento.criar_evento(campo=campo, sistema=so))
+
+    def adicionar_evento(self, evento, sistema) -> None:
+        """Adiciona um evento à lista de eventos da tarefa."""
+        self.eventos.append(Evento.criar_evento(evento=evento, sistema=sistema))
+
+    def limpar_eventos(self) -> None:
+        """Limpa a lista de eventos da tarefa."""
+        self.eventos = []
 
     # métodos para alterar o estado da tarefa
     def bloquear(self) -> None:
