@@ -40,7 +40,7 @@ class Tarefa:   #Contém as informações de cada tarefa
             self.ficar_pronta()
 
         # se a tarefa estava bloqueada, verifica se já terminou o bloqueio
-        elif self.bloqueada:
+        elif self.bloqueada and self.evento_bloqueio_atual:
             self.evento_bloqueio_atual.tratar_evento()
     ''' # se está bloqueada por tempo maior ou igual à duração do bloqueio, ela fica pronta
             if self.t_bloqueado >= self.evento_bloqueio_atual.duracao:

@@ -89,11 +89,13 @@ class EventoMutexLock(EventoMutex):
     def __post_init__(self):
         self.tipo = "ML"
     def tratar_evento(self):
-        pass
+        if self.sistema:
+            self.sistema.tratar_req_mutex_lock(self)
 
 @dataclass
 class EventoMutexUnlock(EventoMutex):
     def __post_init__(self):
         self.tipo = "MU"
     def tratar_evento(self):
-        pass
+        if self.sistema:
+            self.sistema.tratar_req_mutex_unlock(self)

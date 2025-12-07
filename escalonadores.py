@@ -1,3 +1,4 @@
+
 from dataclasses import dataclass
 from typing import List
 from abc import ABC
@@ -144,13 +145,7 @@ class EscalonadorSRTF(Escalonador):
 @dataclass
 class EscalonadorPRIOPEnv(Escalonador):
     fator_envelhecimento: int = 0  # Fator de envelhecimento para aumentar a prioridade das tarefas
-    
-    def __post_init__(self):
-        """Inicializa atributos adicionais."""
-        # Garante que nome_escalonador tenha um valor padrão
-        if not hasattr(self, 'nome_escalonador') or not self.nome_escalonador:
-            self.nome_escalonador = "PRIOPEnv"
-    
+
     def escalonar(self) -> None:
         """Executa o escalonamento das tarefas usando o algoritmo de Prioridade Preemptiva com Envelhecimento."""
         self.escolha_aleatoria_em_empate = False  # Reseta a flag de escolha aleatória em empate
@@ -162,7 +157,7 @@ class EscalonadorPRIOPEnv(Escalonador):
             tarefa.prioridade_dinamica += self.fator_envelhecimento
         maior_prioridade = -1
         
-        # verifica a maior prioridade dinâmica
+        # vêifica a maior prioridade dinâmica
         for tarefa in self.tarefas:
             if tarefa.prioridade_dinamica > maior_prioridade:
                 maior_prioridade = tarefa.prioridade_dinamica
@@ -191,3 +186,4 @@ class EscalonadorPRIOPEnv(Escalonador):
             return
 
         self.escolha_em_casos_empate(tarefas_maior_prio_estatica)  # Chama o método de escolha em casos de empate
+
