@@ -21,7 +21,6 @@ class Interface:
         self.so = SO(escalonador=None, filaTarefasProntas=[], filaTodasTarefas=[]) # sistema operacional simulado
         self.config_filepath = "config.txt"  # Caminho padrão
         self.running = False # Flag para execução contínua
-        self.primeiro_passo_executado = False # Flag para o primeiro passo
         self.historico_estados: List[SO] = []  # Histórico de estados do SO
         self.historico_desenhos_gantt = []
 
@@ -139,7 +138,6 @@ class Interface:
 
     def configurar_sistema(self, tipo_escalonador, quantum, fator_envelhecimento, tarefas) -> None:
         try:
-            self.primeiro_passo_executado = False
             self.running = False
             self.so = SO(escalonador=None, filaTarefasProntas=[], filaTodasTarefas=[])
             self.so.configurar_sistema_manual(tipo_escalonador, quantum, fator_envelhecimento, tarefas)
@@ -162,7 +160,6 @@ class Interface:
 
     def carrega_config(self, filepath):
         try:
-            self.primeiro_passo_executado = False
             self.config_filepath = filepath
             self.so = SO(escalonador=None, filaTarefasProntas=[], filaTodasTarefas=[])
             self.so.configurar_sistema(self.config_filepath)
@@ -184,7 +181,6 @@ class Interface:
             self.historico_estados.clear()
             self.so = SO(escalonador=None, filaTarefasProntas=[], filaTodasTarefas=[])
             self.so.configurar_sistema_manual(configs_atuais['tipo_escalonador'], configs_atuais['quantum'], configs_atuais['fator_envelhecimento'], configs_atuais['tarefas'])
-            self.primeiro_passo_executado = False
             self.running = False
             self.limpa_interface()
             self.so.primeiro_passo()
@@ -233,11 +229,9 @@ class Interface:
         # Substitui o SO atual pelo antigo
         self.so = estado_anterior
 
-        # Ajusta flags se necessário
-        # Se voltamos para o tempo 0, o primeiro passo não foi executado
         if self.so.clock_sistema == 0:
-            self.primeiro_passo_executado = False
-        
+            self.so.primeiro_passo()  # Garante que o primeiro passo seja executado
+
         self.running = False # Geralmente queremos pausar ao voltar
         self.alternar_botoes(enabled=True)
 
@@ -250,7 +244,7 @@ class Interface:
             # Remove cada desenho do gráfico
             for artista in ultimos_desenhos:
                 artista.remove()
-
+    
         # Ajusta o eixo X para voltar ao tempo anterior
         t = self.so.clock_sistema
         self.gantt_ax.set_xlim(left=max(0, t - 50), right=t + 5)
@@ -277,11 +271,7 @@ class Interface:
         # guarda o estado anterior do sistema operacional
         self.salvar_estado_atual()
 
-        if not self.primeiro_passo_executado:
-            self.atualiza_interface()
-            self.primeiro_passo_executado = True
-
-        elif not self.so.executar_passo():
+        if not self.so.executar_passo():
             self.termina_simulacao()
         else:
             self.atualiza_interface()
@@ -304,12 +294,7 @@ class Interface:
 
     def loop_executar(self):
         """Loop principal para o modo Executar Completo."""
-        if not self.primeiro_passo_executado:
-            self.atualiza_interface()
-            self.primeiro_passo_executado = True
-            self.root.after(100, self.loop_executar)
-
-        elif self.running:
+        if self.running:
             self.salvar_estado_atual()
             if not self.so.executar_passo():
                 self.termina_simulacao()
@@ -343,7 +328,6 @@ class Interface:
 
     def termina_simulacao(self):
         self.running = False
-        self.primeiro_passo_executado = False
         self.atualiza_status_tarefas()
         self.alternar_botoes(enabled=True)
         messagebox.showinfo("Simulação Concluída", "A simulação de todas as tarefas foi finalizada.")
@@ -373,7 +357,7 @@ class Interface:
         # Atualiza Gráfico de Gantt
         t = self.so.clock_sistema
 
-        x_start = t # O tick atual começa no tempo t e vai até t+1
+        x_start = t - 1  # O tick atual começa no tempo t-1 e vai até t
 
         desenhos_agora = []
 
