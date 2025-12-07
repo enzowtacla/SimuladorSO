@@ -36,27 +36,15 @@ class Tarefa:   #Contém as informações de cada tarefa
         if self.t_restante == 0:
             self.finalizar()
         # se o tempo de ingresso for igual ao clock atual e a tarefa estiver aguardando, ela fica pronta
-        elif self.ingresso == clock and self.estado == "aguardando":
+        elif self.ingresso == clock and self.aguardando:
             self.ficar_pronta()
 
-        # se a tarefa estava bloqueada, verifica se já terminou o bloqueio
-        elif self.bloqueada and self.evento_bloqueio_atual:
-            self.evento_bloqueio_atual.tratar_evento()
-    ''' # se está bloqueada por tempo maior ou igual à duração do bloqueio, ela fica pronta
-            if self.t_bloqueado >= self.evento_bloqueio_atual.duracao:
-                self.ficar_pronta()
-                self.t_bloqueado = 0
-            # senão, incrementa o tempo bloqueado
-            else:
-                self.t_bloqueado += 1 '''
     # se a tarefa está executando, realiza as seguintes operações
     def executar(self) -> None:
         if self.executando:
             for evento in self.eventos:
-                if evento.instante == self.t_executado:
+                if evento.instante >= self.t_executado and evento.pendente:
                     evento.tratar_evento()
-                    self.bloquear()
-                    self.evento_bloqueio_atual = evento
                     break  
             # decrementa o tempo restante e incrementa o tempo executado
             self.t_restante -= 1

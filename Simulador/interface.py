@@ -319,7 +319,7 @@ class Interface:
             line += f" | Prioridade Estática: {tarefa.prioridade_estatica} | Prioridade Dinâmica: {tarefa.prioridade_dinamica}"
             line += f" | Ingresso: {tarefa.ingresso} | Duração: {tarefa.duracao}"
             if tarefa.bloqueada:
-                line += f" (Bloqueado por {tarefa.t_bloqueado}/{tarefa.evento_bloqueio_atual.duracao})"
+                line += f" (Bloqueado por {tarefa.t_bloqueado})"
             status_lines.append(line)
         self.task_status_text.config(state='normal')
         self.task_status_text.delete('1.0', tk.END)
