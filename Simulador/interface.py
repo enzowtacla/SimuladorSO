@@ -319,8 +319,15 @@ class Interface:
                 self.root.after(100, self.loop_executar)
 
     def atualiza_status_tarefas(self):
-                # Atualiza Status das Tarefas
+        # Atualiza Status das Tarefas
+
         status_lines = []
+
+        if self.so.escalonador and hasattr(self.so.escalonador, 'escolha_aleatoria_em_empate'):
+            if self.so.escalonador.escolha_aleatoria_em_empate:
+                status_lines.append("!!! ATENÇÃO: Desempate realizado por SORTEIO ALEATÓRIO !!!")
+                status_lines.append("-" * 60)
+        
         status_lines.append("Eventos: ver na aba de configuração manual")
         for tarefa in self.so.filaTodasTarefas:
             line = f"ID: {tarefa.id} | Estado: {tarefa.estado} | Restante: {tarefa.t_restante} | Executado: {tarefa.t_executado}"

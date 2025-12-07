@@ -2,7 +2,13 @@ from dataclasses import dataclass
 from typing import List
 from abc import ABC
 from abc import abstractmethod
-from .tarefa import Tarefa
+try:
+    # Tenta importar do jeito relativo (Funciona quando compilado internamente)
+    from .tarefa import Tarefa
+except (ImportError, ValueError):
+    # Se der erro de "parent package", tenta importar direto (Funciona como Plugin externo)
+    # Graças àquele 'sys.modules' que adicionamos no main, ele vai achar a tarefa interna!
+    from tarefa import Tarefa
 import random
 lista_escalonadores = ["FCFS", "PRIOP", "SRTF", "PRIOPEnv"]
 indice_escalonador = {
