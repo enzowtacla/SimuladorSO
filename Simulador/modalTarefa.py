@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from .modalEvento import ModalEvent
 from .tarefa import mapa_tipos_display
-from .cores import get_lista_cores_para_combobox, extrair_id_cor_do_texto, get_cor_nome, get_cor_hex
+from .cores import get_lista_cores_para_combobox, extrair_id_cor_do_texto, get_cor_nome
 class ModalTarefas(tk.Toplevel):
     """Modal para adicionar/editar tarefas."""
     def __init__(self, parent, dados_tarefa_existente=None):
@@ -129,7 +129,7 @@ class ModalTarefas(tk.Toplevel):
         # Mapa para converter 'IO' de volta para 'I/O'
 
         for evento in self.eventos: # itera sobre os eventos
-            tipo_abrev = evento.get('tipo_evento', 'N/A') # obtém o tipo abreviado
+            tipo_abrev = evento.get('tipo_evento') # obtém o tipo abreviado
             tipo_display = mapa_tipos_display.get(tipo_abrev, tipo_abrev) # converte para display
             tempo_ini = evento.get('instante', '?') # obtém o instante inicial
             dur = evento.get('duracao', '?') # obtém a duração
@@ -223,7 +223,7 @@ class ModalTarefas(tk.Toplevel):
             if not valido:
                 return (False, msg)
 
-            valido, msg = self._validar_sobreposicao_eventos() # valida sobreposição de eventos
+            valido, msg = self._validar_semInicio_eventos() # valida eventos sem início
             if not valido:
                 return (False, msg)
 
@@ -233,7 +233,7 @@ class ModalTarefas(tk.Toplevel):
 
             # --- Se tudo estiver válido, constrói o dicionário final ---
             dados_finais = {
-                "cor": get_cor_hex(cor_id),
+                "cor": cor_id,
                 "ingresso": ingresso_tarefa,
                 "duracao": duracao_tarefa,
                 "prioridade_estatica": prioridade_tarefa,
@@ -273,28 +273,15 @@ class ModalTarefas(tk.Toplevel):
             return (False, f"Erro Lógico: Mutex '{mid_aberto}' foi travado mas nunca liberado.")
         return (True, "OK")
 
-    def _validar_sobreposicao_eventos(self):
-        """Valida sobreposição de eventos."""
+    def _validar_semInicio_eventos(self):
+        """Valida eventos sem início."""
         if not self.eventos: # se não houver eventos
             return (True, "OK")
-            
-        try:
-            eventos_ordenados = sorted(self.eventos, key=lambda ev: ev['instante']) # ordena os eventos pelo instante
-        except KeyError:
-            return (False, "Um evento está sem 'instante inicial'.") # erro se algum evento não tiver instante
 
-        ultimo_tempo_fim = -1 # inicializa o tempo fim do último evento
-        
-        for evento in eventos_ordenados: # itera sobre os eventos ordenados
-            tempo_inicio = evento['instante'] # obtém o instante inicial
-            # Eventos sem duração (ML, MU) têm duração 0
-            duracao = evento.get('duracao', 0) # obtém a duração (0 se não existir)
-            
-            if tempo_inicio < ultimo_tempo_fim: # verifica sobreposição
-                return (False, f"Erro de Sobreposição: Evento '{evento.get('tipo_evento')}' em {tempo_inicio} começa antes do evento anterior terminar em {ultimo_tempo_fim}.")
-            
-            ultimo_tempo_fim = tempo_inicio + duracao # atualiza o tempo fim do último evento
-            
+        for evento in self.eventos:
+            if evento['instante'] is None:
+                return (False, f"Evento '{evento['tipo_evento']}' não tem instante inicial.")
+
         return (True, "OK")
 
     def _validar_limites_eventos(self, duracao_tarefa):

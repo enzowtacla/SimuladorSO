@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-from .tarefa import mapa_tipos_reverso, lista_eventos_tipos
+from .tarefa import mapa_tipos_reverso, lista_eventos_tipos, mapa_tipos_display
 class ModalEvent(tk.Toplevel):
     """Modal para adicionar/editar eventos de tarefas."""
     def __init__(self, parent, dados_evento_existente=None):
@@ -16,7 +16,7 @@ class ModalEvent(tk.Toplevel):
         defaults = dados_evento_existente or {} # usa dados existentes ou vazio
 
         tipo_abrev_padrao = defaults.get('tipo_evento', 'IO') # padrão para novo evento é I/O
-        self.tipo_display_padrao = mapa_tipos_reverso.get(tipo_abrev_padrao, "I/O") # converte para display
+        self.tipo_display_padrao = mapa_tipos_display.get(tipo_abrev_padrao, "I/O") # converte para display
         self.tipo_var = tk.StringVar(value=self.tipo_display_padrao) # variável do tipo de evento
 
         # variaveis dinâmicas a depender do tipo de evento
@@ -145,17 +145,9 @@ class ModalEvent(tk.Toplevel):
                 if not dados_brutos.get('mutex_id', '').strip(): # verifica se tem um id
                     return (False, "O 'ID do Mutex' não pode ser vazio.")
             # --- Fim Validações ---
-            # Mapeamento do tipo para abreviação
-            mapa_tipos = {
-                "I/O": "IO",
-                "Mutex Lock": "ML",
-                "Mutex Unlock": "MU",
-                "Envio": "SND",
-                "Recebimento": "RCV"
-            } # mapeia nomes completos para abreviações
 
             # Mapeia o tipo
-            tipo_evento_abrev = mapa_tipos.get(tipo_evento_display)
+            tipo_evento_abrev = mapa_tipos_reverso.get(tipo_evento_display, tipo_evento_display)
 
             # Constrói o resultado
             resultado_final = { "tipo_evento": tipo_evento_abrev } # inicia o resultado com o tipo

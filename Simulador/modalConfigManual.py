@@ -2,7 +2,6 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from .modalTarefa import ModalTarefas
 from .escalonadores import lista_escalonadores, indice_escalonador
-from .cores import get_cor_hex
 class ModalConfigManual(tk.Toplevel):
     """Modal para configuração manual do simulador."""
     def __init__(self, parent, configuracao_existente=None):
@@ -21,9 +20,9 @@ class ModalConfigManual(tk.Toplevel):
         self.fator_envelhecimento = tk.IntVar(value=val_env)
 
         # define uma configuração padrão de tarefas
-        self.tarefas_default = [{"id": "t01", "cor": get_cor_hex(0), "ingresso": 0, "duracao": 5, "prioridade_estatica": 1}, 
-                        {"id": "t02", "cor": get_cor_hex(1), "ingresso": 2, "duracao": 3, "prioridade_estatica": 2}, 
-                        {"id": "t03", "cor": get_cor_hex(2), "ingresso": 4, "duracao": 4, "prioridade_estatica": 1}]
+        self.tarefas_default = [{"id": "t01", "cor": 0, "ingresso": 0, "duracao": 5, "prioridade_estatica": 1}, 
+                        {"id": "t02", "cor": 1, "ingresso": 2, "duracao": 3, "prioridade_estatica": 2}, 
+                        {"id": "t03", "cor": 2, "ingresso": 4, "duracao": 4, "prioridade_estatica": 1}]
         
         # carregar tarefas existentes ou padrão
         self.tarefas = self.configuracao_existente.get('tarefas', self.tarefas_default) if self.configuracao_existente else self.tarefas_default
