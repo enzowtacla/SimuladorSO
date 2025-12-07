@@ -227,19 +227,41 @@ class SO:
 
     def tratar_req_inicio_io(self, evento_io, tarefa) -> None:
         """Trata a requisição de início de I/O."""
-        pass  # Implementar a lógica de início de I/O aqui
+        tarefa = self.tarefa_executando_anterior
+        if tarefa:
+            tarefa.bloquear()  # Bloqueia a tarefa
+            tarefa.evento_bloqueio_atual = evento_io
+            self.tarefa_executando_anterior = None
 
     def tratar_req_fim_io(self, evento_io, tarefa) -> None:
         """Trata a requisição de fim de I/O."""
-        pass  # Implementar a lógica de fim de I/O aqui
+        tarefa_desbloqueada = None
+        for tarefa in self.filaTodasTarefas:
+            if tarefa.bloqueada and tarefa.evento_bloqueio_atual == evento_io:
+                tarefa_desbloqueada = tarefa
+                break
 
     def tratar_req_lock_mutex(self, evento_mutex, tarefa) -> None:
         """Trata a requisição de lock de mutex."""
-        pass  # Implementar a lógica de lock de mutex aqui
+
+        # Apenas bloqueia a tarefa
+        tarefa = self.tarefa_executando_anterior
+        if tarefa:
+            tarefa.bloquear()
+            tarefa.evento_bloqueio_atual = evento_mutex
+            self.tarefa_executando_anterior = None
 
     def tratar_req_unlock_mutex(self, evento_mutex, tarefa) -> None:
         """Trata a requisição de unlock de mutex."""
-        pass  # Implementar a lógica de unlock de mutex aqui
+
+        # Encontra e desbloqueia a tarefa
+        for tarefa in self.filaTodasTarefas:
+            if tarefa.bloqueada and tarefa.evento_bloqueio_atual == evento_mutex:
+                tarefa.ficar_pronta()
+                tarefa.evento_bloqueio_atual = None
+                self.adicionar_tarefa_pronta(tarefa)
+                self.ingresso_fila_prontas = True
+                break
 
 class IOController:
     """Controlador de dispositivos de I/O."""
@@ -319,48 +341,3 @@ class MutexList:
             if m.id == id_mutex:
                 return m
         return None
-
-
-    def tratar_req_inicio_io(self, evento_io) -> None:
-        """Trata a requisição de início de I/O."""
-        tarefa = self.tarefa_executando_anterior
-        if tarefa:
-            tarefa.bloquear()  # Bloqueia a tarefa
-            tarefa.evento_bloqueio_atual = evento_io
-            self.tarefa_executando_anterior = None
-
-    def tratar_req_fim_io(self, evento_io) -> None:
-        """Trata a requisição de fim de I/O."""
-        tarefa_desbloqueada = None
-        for tarefa in self.filaTodasTarefas:
-            if tarefa.bloqueada and tarefa.evento_bloqueio_atual == evento_io:
-                tarefa_desbloqueada = tarefa
-                break
-
-        if tarefa_desbloqueada:
-            tarefa_desbloqueada.ficar_pronta()  # Coloca a tarefa como pronta
-            tarefa_desbloqueada.evento_bloqueio_atual = None
-            self.adicionar_tarefa_pronta(tarefa_desbloqueada)  # Adiciona a tarefa à fila de prontas
-            self.ingresso_fila_prontas = True  # Indica que houve ingresso na fila de prontas
-
-    def tratar_req_lock_mutex(self, evento_mutex) -> None:
-        """Trata a requisição de lock de mutex."""
-
-        # Apenas bloqueia a tarefa
-        tarefa = self.tarefa_executando_anterior
-        if tarefa:
-            tarefa.bloquear()
-            tarefa.evento_bloqueio_atual = evento_mutex
-            self.tarefa_executando_anterior = None
-
-    def tratar_req_unlock_mutex(self, evento_mutex) -> None:
-        """Trata a requisição de unlock de mutex."""
-
-        # Encontra e desbloqueia a tarefa
-        for tarefa in self.filaTodasTarefas:
-            if tarefa.bloqueada and tarefa.evento_bloqueio_atual == evento_mutex:
-                tarefa.ficar_pronta()
-                tarefa.evento_bloqueio_atual = None
-                self.adicionar_tarefa_pronta(tarefa)
-                self.ingresso_fila_prontas = True
-                break
