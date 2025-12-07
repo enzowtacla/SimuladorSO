@@ -66,9 +66,9 @@ class Tarefa:   #Contém as informações de cada tarefa
         """Reseta a prioridade dinâmica para a prioridade estática."""
         self.prioridade_dinamica = self.prioridade_estatica
 
-    def adicionar_evento(self, campo, so) -> None:
+    def adicionar_evento_arquivo(self, campo, so) -> None:
         """Adiciona um evento à lista de eventos da tarefa."""
-        self.eventos.append(Evento.criar_evento(campo=campo, sistema=so))
+        self.eventos.append(Evento.criar_evento_campo(campo=campo, sistema=so))
 
     def adicionar_evento(self, evento, sistema) -> None:
         """Adiciona um evento à lista de eventos da tarefa."""

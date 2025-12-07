@@ -67,7 +67,7 @@ class SO:
                 # lê os eventos, se houver
                 for campo in campos[5:]:
                     if campo.strip(): 
-                        tarefa.adicionar_evento(campo, self)
+                        tarefa.adicionar_evento_arquivo(campo, self)
 
                 # adiciona a tarefa à fila de todas as tarefas
                 self.adicionar_tarefa(tarefa)
@@ -93,7 +93,7 @@ class SO:
                 eventos=[])
             # percorre os eventos da tarefa e cria objetos Evento
             for evento in tarefa.get('eventos', []):
-                tarefa_convertida.adicionar_evento(evento=evento, sistema=self) # adiciona o evento convertido à tarefa
+                tarefa_convertida.adicionar_evento_arquivo(evento=evento, sistema=self) # adiciona o evento convertido à tarefa
             tarefas_convertidas.append(tarefa_convertida) # adiciona a tarefa convertida à lista
         self.setar_tarefas(tarefas_convertidas) # define a lista de tarefas no sistema operacional
 

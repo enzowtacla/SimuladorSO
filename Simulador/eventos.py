@@ -19,7 +19,7 @@ class Evento:  # Contém as informações de cada evento
     instante:int # Tempo qe começo do evento
     sistema: 'SO' = None   # Referência ao sistema operacional para manipulação de recursos
     @staticmethod
-    def criar_evento(campo, sistema) -> 'Evento':
+    def criar_evento_campo(campo, sistema) -> 'Evento':
         """Cria um evento a partir de uma string de campo."""
         sub_campos = campo.strip().split(":") # separa os subcampos do evento
         tipo = sub_campos[0] # tipo do evento
@@ -33,7 +33,7 @@ class Evento:  # Contém as informações de cada evento
         # se for MU ou ML, possui apenas tempo de início
         elif tipo[0:2] == "MU" or tipo[0:2] == "ML":
             tempo_inicio = int(sub_campos[1])
-            evento = EventoMutex.criarEventoMutex(tipo=tipo, id_mutex=tipo[2:], instante=tempo_inicio, sistema=sistema) # cria o evento
+            evento = EventoMutex(tipo=tipo[0:2], mutex_id=tipo[2:], instante=tempo_inicio, sistema=sistema) # cria o evento
 
         return evento
     
