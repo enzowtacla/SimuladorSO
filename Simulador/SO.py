@@ -358,7 +358,8 @@ class SO:
         # Apenas bloqueia a tarefa
         tarefa = self.tarefa_executando_anterior
         if evento_mutex.mutex_id and tarefa:
-            if self.list_mutexes.obter_mutex(evento_mutex.mutex_id) is None:
+            mutex_novo = self.list_mutexes.obter_mutex(evento_mutex.mutex_id)
+            if mutex_novo is None:
                 mutex_novo = Mutex(id=evento_mutex.mutex_id)
                 self.list_mutexes.adicionar_mutex(mutex_novo)
             mutex_novo.lock(tarefa)
