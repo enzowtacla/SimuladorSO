@@ -258,15 +258,16 @@ class SO:
     
         self.executar_tarefas() # Executa a tarefa que está rodando
         self.list_controladores_io.executar_ios() # Executa os controladores de I/O
-        self.clock_sistema += 1 # Avança o clock
-
-        if any(tarefa.executando for tarefa in self.filaTodasTarefas): # Incrementa o tempo de execução do quantum
-            self.tempo_executando_atual += 1
         
         self.atualizar_tarefas() # Atualiza o estado das tarefas
         self.atualizarFilaProntas() # Atualiza a fila de tarefas prontas
         self.analisar_tarefas() # Analisa as tarefas para escalonamento
 
+        self.clock_sistema += 1  # Incrementa o clock do sistema
+
+        if any(tarefa.executando for tarefa in self.filaTodasTarefas): # Incrementa o tempo de execução do quantum
+            self.tempo_executando_atual += 1
+        
         if all(tarefa.finalizada for tarefa in self.filaTodasTarefas):
             return False  # Todas as tarefas foram finalizadas
 
@@ -314,6 +315,7 @@ class SO:
     def tratar_req_inicio_io(self, evento_io) -> None:
         """Trata a requisição de início de I/O."""
         tarefa = self.tarefa_executando_anterior
+        print(f"Tratando início de I/O para tarefa {tarefa.id if tarefa else 'N/A'} no clock {self.clock_sistema}")
         print(evento_io)
         print(tarefa)
         if tarefa:
@@ -331,6 +333,7 @@ class SO:
     def tratar_req_fim_io(self, IOController) -> None:
         """Trata a requisição de fim de I/O."""
         tarefa_desbloqueada = IOController.tarefa
+        print(f"Tratando fim de I/O para tarefa {tarefa_desbloqueada.id} no clock {self.clock_sistema}")
         print(IOController)
         print(tarefa_desbloqueada)
         tarefa_desbloqueada.ficar_pronta()
@@ -345,6 +348,7 @@ class SO:
 
         # Apenas bloqueia a tarefa
         tarefa = self.tarefa_executando_anterior
+        print(f"Tratando lock para mutex {evento_mutex.mutex_id} pela tarefa {tarefa.id if tarefa else 'N/A'} no clock {self.clock_sistema}")
         print(evento_mutex)
         print(tarefa)
         if evento_mutex.mutex_id and tarefa:
@@ -364,6 +368,7 @@ class SO:
     def tratar_req_mutex_unlock(self, evento_mutex) -> None:
         """Trata a requisição de unlock de mutex."""
         mutex = self.list_mutexes.obter_mutex(evento_mutex.mutex_id)
+        print(f"Tratando unlock para mutex {evento_mutex.mutex_id} no clock {self.clock_sistema}")
         print(evento_mutex)
         if mutex:
             tarefa_desbloqueada = mutex.unlock()
