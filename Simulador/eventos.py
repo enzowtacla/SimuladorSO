@@ -17,6 +17,7 @@ mapa_tipos_reverso = {
 class Evento:  # Contém as informações de cada evento
     tipo: str    # Tipo do evento: I/O, Mutex Lock (ML), Mutex Unlock (MU) -- maioria ainda não tratados
     instante:int # Tempo qe começo do evento
+    estado: str = "pendente"  # Estado do evento: pendente, em andamento, concluído
     sistema: 'SO' = None   # Referência ao sistema operacional para manipulação de recursos
     @staticmethod
     def criar_evento_campo(campo, sistema) -> 'Evento':
@@ -50,6 +51,14 @@ class Evento:  # Contém as informações de cada evento
     def tratar_evento(self):
         pass
 
+    @property
+    def pendente(self) -> bool:
+        return self.estado == "pendente"
+    def em_andamento(self) -> bool:
+        return self.estado == "em andamento"
+    def concluido(self) -> bool:
+        return self.estado == "concluído"
+
 @dataclass
 class EventoIO(Evento):
     duracao: int = 0  # Duração do evento de I/O
@@ -60,14 +69,10 @@ class EventoIO(Evento):
         self.tempo_restante = self.duracao
     
     def tratar_evento(self):
-        if self.tempo_restante == self.duracao:
+        if self.tempo_restante >= self.duracao and self.pendente:
+            self.estado = "em andamento"
             self.sistema.tratar_req_inicio_io(self)
-        if self.tempo_restante > 0:
-            self.tempo_restante -= 1
-            return
-        if self.tempo_restante == 0:
-            # libera a tarefa bloqueada
-            self.sistema.tratar_req_fim_io(self)
+
 
 @dataclass
 class EventoMutex(Evento):

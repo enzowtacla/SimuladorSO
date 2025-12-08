@@ -305,7 +305,6 @@ class Interface:
 
     def atualiza_status_tarefas(self):
         # Atualiza Status das Tarefas
-
         status_lines = []
 
         if self.so.escalonador and hasattr(self.so.escalonador, 'escolha_aleatoria_em_empate'):
@@ -314,13 +313,25 @@ class Interface:
                 status_lines.append("-" * 60)
         
         status_lines.append("Eventos: ver na aba de configuração manual")
+        
         for tarefa in self.so.filaTodasTarefas:
             line = f"ID: {tarefa.id} | Estado: {tarefa.estado} | Restante: {tarefa.t_restante} | Executado: {tarefa.t_executado}"
             line += f" | Prioridade Estática: {tarefa.prioridade_estatica} | Prioridade Dinâmica: {tarefa.prioridade_dinamica}"
             line += f" | Ingresso: {tarefa.ingresso} | Duração: {tarefa.duracao}"
+            
             if tarefa.bloqueada:
-                line += f" (Bloqueado por {tarefa.t_bloqueado}/{tarefa.evento_bloqueio_atual.duracao})"
+                motivo = "Desconhecido"
+                if hasattr(tarefa, 'evento_bloqueio_atual') and tarefa.evento_bloqueio_atual:
+                    evt = tarefa.evento_bloqueio_atual
+                    if evt.tipo == "IO":
+                        motivo = f"I/O ({evt.duracao} ciclos)"
+                    elif evt.tipo in ["ML", "MU"]:
+                        motivo = f"Mutex {evt.mutex_id}"
+                
+                line += f" (Bloqueado por: {motivo})"
+                
             status_lines.append(line)
+
         self.task_status_text.config(state='normal')
         self.task_status_text.delete('1.0', tk.END)
         self.task_status_text.insert(tk.END, "\n".join(status_lines))
@@ -349,26 +360,39 @@ class Interface:
 
     def atualiza_interface(self):
         """Atualiza todos os elementos da GUI com base no estado do SO."""
-        # Atualiza Clock
-        self.clock_label.config(text=f"Clock: {self.so.clock_sistema+1}")
+        # Atualiza Clock (Mantendo seu +1 visual)
+        self.clock_label.config(text=f"Clock: {self.so.clock_sistema}")
         
         self.atualiza_status_tarefas()
         
-        # Atualiza Gráfico de Gantt
         t = self.so.clock_sistema
 
-        x_start = t - 1  # O tick atual começa no tempo t-1 e vai até t
+        x_start = max(0, t - 1) 
 
         desenhos_agora = []
+
+        houve_sorteio = False
+        if self.so.escalonador and hasattr(self.so.escalonador, 'escolha_aleatoria_em_empate'):
+            houve_sorteio = self.so.escalonador.escolha_aleatoria_em_empate
 
         for i, tarefa in enumerate(self.so.filaTodasTarefas):
 
             if tarefa.executando:
                 cor_hex = tarefa.cor
-                # Desenha uma barra horizontal
-                # y=i (posição da tarefa), width=1 (duração de 1 tick), left=x_start
+                
+                # CORREÇÃO 2 (Continuação): Aplica a borda vermelha se houve sorteio
+                edge_color = 'black'
+                line_width = 1
+                if houve_sorteio:
+                    edge_color = 'red'
+                    line_width = 3
+                
+                # Desenha a barra
                 container = self.gantt_ax.barh(i, width=1, left=x_start, height=0.7,
-                                 color=cor_hex, edgecolor='black', alpha=0.8)
+                                 color=cor_hex, 
+                                 edgecolor=edge_color, # Usa a cor definida
+                                 linewidth=line_width, # Usa a espessura definida
+                                 alpha=0.8)
 
                 for retangulo in container:
                     desenhos_agora.append(retangulo)
@@ -385,7 +409,6 @@ class Interface:
         self.historico_desenhos_gantt.append(desenhos_agora)
         
         # Auto-scroll: Ajusta o limite do eixo X para "seguir" o tempo
-        # Mostra os últimos 50 ticks de tempo, ou começa do 0
         self.gantt_ax.set_xlim(left=max(0, t - 50), right=t + 5)
         
         # Redesenha o canvas
