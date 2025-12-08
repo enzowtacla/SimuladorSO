@@ -346,9 +346,9 @@ class Interface:
         # Pergunta se o usuário quer salvar o gráfico
         if messagebox.askyesno("Salvar Gráfico", "Deseja salvar o gráfico de Gantt como PNG?"):
             self.salvar_gantt()
-            
         self.so.limpeza_sistema()
-
+        self.historico_estados.pop()
+    
     def inicializa_interface(self):
         """Inicializa todos os elementos da GUI com base no estado do SO."""
         # Atualiza Clock
@@ -367,7 +367,7 @@ class Interface:
         
         t = self.so.clock_sistema
 
-        x_start = max(0, t - 1) 
+        x_start = max(0, t-1) 
 
         desenhos_agora = []
 
@@ -380,7 +380,7 @@ class Interface:
             if tarefa.executando:
                 cor_hex = tarefa.cor
                 
-                # CORREÇÃO 2 (Continuação): Aplica a borda vermelha se houve sorteio
+                #Aplica a borda vermelha se houve sorteio
                 edge_color = 'black'
                 line_width = 1
                 if houve_sorteio:

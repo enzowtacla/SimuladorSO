@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Union
 import os
 
@@ -103,8 +103,8 @@ class SO:
     nome_tipo_escalonador: str = "" # guarda o nome do tipo de escalonador usado atualmente
     tarefa_executando_anterior: Tarefa = None  # guarda a tarefa que estava executando no passo anterior
     fator_envelhecimento: int = 0  # fator de envelhecimento para escalonadores que o utilizam
-    list_controladores_io: IOControllerList = IOControllerList()  # Lista de controladores de I/O
-    list_mutexes: MutexList = MutexList()  # Lista de mutexes
+    list_controladores_io: IOControllerList = field(default_factory=IOControllerList)
+    list_mutexes: MutexList = field(default_factory=MutexList)
     # configura o sistema operacional a partir de um arquivo de configuração
     def configurar_sistema(self, filepath: str) -> None:
         """Lê o arquivo de configuração e inicializa o sistema operacional."""
@@ -252,23 +252,33 @@ class SO:
     def executar_passo(self) -> bool:
         """Executa um único passo (tick) da simulação."""
         
+        # 0. Verificação de parada
         if all(tarefa.finalizada for tarefa in self.filaTodasTarefas):
-            return False  # Todas as tarefas foram finalizadas
-    
-        self.executar_tarefas() # Executa a tarefa que está rodando
-        self.list_controladores_io.executar_ios() # Executa os controladores de I/O
+            return False 
+
+        # 1. Hardware (Independente)
+        self.list_controladores_io.executar_ios() 
+
+        # 2. Atualiza Filas (Quem chegou agora?)
+        self.atualizar_tarefas() 
+        self.atualizarFilaProntas()
+
+        # 3. Decisão (Quem vai rodar AGORA?)
+        self.analisar_tarefas() 
+
+        # 4. Ação (Gasta CPU)
+        self.executar_tarefas() 
         
-        self.atualizar_tarefas() # Atualiza o estado das tarefas
-        self.atualizarFilaProntas() # Atualiza a fila de tarefas prontas
-        self.analisar_tarefas() # Analisa as tarefas para escalonamento
+        # 5. Tempo (Só agora o tempo passa)
+        self.clock_sistema += 1 
 
-        self.clock_sistema += 1  # Incrementa o clock do sistema
-
-        if any(tarefa.executando for tarefa in self.filaTodasTarefas): # Incrementa o tempo de execução do quantum
+        # 6. Quantum (Pós-processamento)
+        if any(tarefa.executando for tarefa in self.filaTodasTarefas):
             self.tempo_executando_atual += 1
         
+        # 7. Verificação final
         if all(tarefa.finalizada for tarefa in self.filaTodasTarefas):
-            return False  # Todas as tarefas foram finalizadas
+            return False
 
         return True  # A simulação continua
     
