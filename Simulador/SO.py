@@ -58,7 +58,7 @@ class Mutex:
         self.tarefas_bloqueadas = []  # Inicializa a lista de tarefas bloqueadas
     def lock(self, tarefa: Tarefa) -> None:
         """Adquire o lock do mutex para a tarefa."""
-        if self.count > 0:
+        if self.count >= 0:
             self.count -= 1
         else:
             self.tarefas_bloqueadas.append(tarefa)
@@ -177,7 +177,7 @@ class SO:
                 eventos=[])
             # percorre os eventos da tarefa e cria objetos Evento
             for evento in tarefa.get('eventos', []):
-                tarefa_convertida.adicionar_evento_arquivo(evento=evento, sistema=self) # adiciona o evento convertido à tarefa
+                tarefa_convertida.adicionar_evento(evento=evento, sistema=self) # adiciona o evento convertido à tarefa
             tarefas_convertidas.append(tarefa_convertida) # adiciona a tarefa convertida à lista
         self.setar_tarefas(tarefas_convertidas) # define a lista de tarefas no sistema operacional
 
@@ -308,11 +308,14 @@ class SO:
                 
             if len(self.filaTarefasProntas) > 0: # se houver tarefas prontas, chama o escalonador
                 self.escalonador.escalonar() # chama o escalonador
+                self.tarefa_executando_anterior = self.escalonador.tarefa_atual # atualiza a tarefa que está executando
             self.tempo_executando_atual = 0 # reseta o tempo de execução atual
 
     def tratar_req_inicio_io(self, evento_io) -> None:
         """Trata a requisição de início de I/O."""
         tarefa = self.tarefa_executando_anterior
+        print(evento_io)
+        print(tarefa)
         if tarefa:
             self.remover_tarefa_pronta(tarefa) # remove a tarefa da fila de prontas
             tarefa.bloquear()  
@@ -328,6 +331,8 @@ class SO:
     def tratar_req_fim_io(self, IOController) -> None:
         """Trata a requisição de fim de I/O."""
         tarefa_desbloqueada = IOController.tarefa
+        print(IOController)
+        print(tarefa_desbloqueada)
         tarefa_desbloqueada.ficar_pronta()
         tarefa_desbloqueada.evento_bloqueio_atual.estado = "concluído"
         tarefa_desbloqueada.evento_bloqueio_atual = None
@@ -340,6 +345,8 @@ class SO:
 
         # Apenas bloqueia a tarefa
         tarefa = self.tarefa_executando_anterior
+        print(evento_mutex)
+        print(tarefa)
         if evento_mutex.mutex_id and tarefa:
             if self.list_mutexes.obter_mutex(evento_mutex.mutex_id) is None:
                 mutex_novo = Mutex(id=evento_mutex.mutex_id)
@@ -357,8 +364,10 @@ class SO:
     def tratar_req_mutex_unlock(self, evento_mutex) -> None:
         """Trata a requisição de unlock de mutex."""
         mutex = self.list_mutexes.obter_mutex(evento_mutex.mutex_id)
+        print(evento_mutex)
         if mutex:
             tarefa_desbloqueada = mutex.unlock()
+            print(tarefa_desbloqueada)
             if tarefa_desbloqueada:
                 tarefa_desbloqueada.ficar_pronta()
                 tarefa_desbloqueada.evento_bloqueio_atual.estado = "concluído"
