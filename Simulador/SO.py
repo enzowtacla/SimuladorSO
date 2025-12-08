@@ -58,7 +58,7 @@ class Mutex:
         self.tarefas_bloqueadas = []  # Inicializa a lista de tarefas bloqueadas
     def lock(self, tarefa: Tarefa) -> None:
         """Adquire o lock do mutex para a tarefa."""
-        if self.count >= 0:
+        if self.count > 0:
             self.count -= 1
         else:
             self.tarefas_bloqueadas.append(tarefa)
