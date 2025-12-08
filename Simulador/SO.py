@@ -239,9 +239,8 @@ class SO:
 
     def executar_tarefas(self) -> None:
         """chama a função executar das tarefas na fila de tarefas."""
-        for tarefa in self.filaTodasTarefas:
-            if not tarefa.finalizada:
-                tarefa.executar()
+        if self.tarefa_executando_anterior:
+            self.tarefa_executando_anterior.executar()
 
     # realiza o primeiro passo da simulação -- necessário para inicializar o sistema corretamente
     def primeiro_passo(self):
@@ -312,6 +311,12 @@ class SO:
                 self.tarefa_executando_anterior = self.escalonador.tarefa_atual # atualiza a tarefa que está executando
             self.tempo_executando_atual = 0 # reseta o tempo de execução atual
 
+    def tratar_necessidade_reexecucao(self) -> None:
+        self.atualizarFilaProntas()
+        self.escalonador.escalonar()
+        self.tarefa_executando_anterior=self.escalonador.tarefa_atual
+        self.executar_tarefas()
+
     def tratar_req_inicio_io(self, evento_io) -> None:
         """Trata a requisição de início de I/O."""
         tarefa = self.tarefa_executando_anterior
@@ -328,7 +333,7 @@ class SO:
                 tarefa=tarefa,
                 SO=self
             ))
-            self.tarefa_executando_anterior = None
+            self.tratar_necessidade_reexecucao()
 
     def tratar_req_fim_io(self, IOController) -> None:
         """Trata a requisição de fim de I/O."""
@@ -361,6 +366,7 @@ class SO:
                 self.remover_tarefa_pronta(tarefa) # remove a tarefa da fila de prontas
                 tarefa.evento_bloqueio_atual = evento_mutex
                 self.tarefa_executando_anterior = None
+                self.tratar_necessidade_reexecucao()
 
             else:
                 evento_mutex.estado = "concluído"
