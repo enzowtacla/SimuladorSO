@@ -45,7 +45,8 @@ class Tarefa:   #Contém as informações de cada tarefa
             for evento in self.eventos:
                 if evento.instante >= self.t_executado and evento.pendente:
                     evento.tratar_evento()
-                    break  
+                    if self.bloqueada:
+                        break  
             # decrementa o tempo restante e incrementa o tempo executado
             self.t_restante -= 1
             self.t_executado += 1

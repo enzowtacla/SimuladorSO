@@ -2,10 +2,94 @@ from dataclasses import dataclass
 from typing import List, Union
 import os
 
-from .tarefa import Tarefa, Evento
+from .tarefa import Tarefa
 from .escalonadores import *
 from .cores import get_cor_hex, get_cor_by_hex
 # a classe do sistema operacional
+
+@dataclass
+class IOController:
+    """Controlador de dispositivos de I/O."""
+    id: str  # Identificador do controlador de I/O
+    duracao_acesso: int  # Duração do acesso ao dispositivo de I/O
+    tarefa: Tarefa  # Tarefa associada ao controlador de I/O
+    SO: 'SO'  # Referência ao sistema operacional
+    def executar_io(self) -> None:
+        """Executa a operação de I/O."""
+        self.duracao_acesso -= 1  # Implementar a lógica de execução de I/O aqui
+        if self.duracao_acesso < 0:
+            self.IRQ()
+
+    def IRQ(self) -> None:
+        """Trata a requisição de I/O."""
+        self.SO.tratar_req_fim_io(self)
+
+class IOControllerList:
+    """Controlador de lista de dispositivos de I/O."""
+    def __init__(self):
+        self.controladores_io = []
+
+    def adicionar_controlador_io(self, controlador_io: 'IOController') -> None:
+        """Adiciona um controlador de I/O à lista."""
+        self.controladores_io.append(controlador_io)
+
+    def remover_controlador_io(self, id_controlador: str) -> None:
+        """Remove um controlador de I/O da lista pelo seu ID."""
+        self.controladores_io = [ctrl for ctrl in self.controladores_io if ctrl.id != id_controlador]
+
+    def obter_controlador_io(self, id_controlador: str) -> Union['IOController', None]:
+        """Obtém um controlador de I/O pelo seu ID."""
+        for ctrl in self.controladores_io:
+            if ctrl.id == id_controlador:
+                return ctrl
+        return None
+    def executar_ios(self) -> None:
+        """Executa todos os controladores de I/O na lista."""
+        for controlador in self.controladores_io:
+            controlador.executar_io()
+
+@dataclass
+class Mutex:
+    """Representa um mutex para sincronização de tarefas."""
+    id: str  # Identificador do mutex
+    count: int = 1  # Contador de locks adquiridos
+    tarefas_bloqueadas: List[Tarefa] = None  # Lista de tarefas bloqueadas pelo mutex
+    def __post_init__(self):
+        self.tarefas_bloqueadas = []  # Inicializa a lista de tarefas bloqueadas
+    def lock(self, tarefa: Tarefa) -> None:
+        """Adquire o lock do mutex para a tarefa."""
+        if self.count > 0:
+            self.count -= 1
+        else:
+            self.tarefas_bloqueadas.append(tarefa)
+            tarefa.bloquear()
+    def unlock(self) -> Union[Tarefa, None]:
+        """Libera o lock do mutex e retorna a próxima tarefa bloqueada, se houver."""
+        if self.tarefas_bloqueadas:
+            tarefa_desbloqueada = self.tarefas_bloqueadas.pop(0)
+            return tarefa_desbloqueada
+        else:
+            self.count += 1
+            return None
+class MutexList:
+    """Controlador de lista de mutexes."""
+    def __init__(self):
+        self.mutexes = []
+
+    def adicionar_mutex(self, mutex: 'Mutex') -> None:
+        """Adiciona um mutex à lista."""
+        self.mutexes.append(mutex)
+
+    def remover_mutex(self, id_mutex: str) -> None:
+        """Remove um mutex da lista pelo seu ID."""
+        self.mutexes = [m for m in self.mutexes if m.id != id_mutex]
+
+    def obter_mutex(self, id_mutex: str) -> Union['Mutex', None]:
+        """Obtém um mutex pelo seu ID."""
+        for m in self.mutexes:
+            if m.id == id_mutex:
+                return m
+        return None
 @dataclass
 class SO:
     """Representa o sistema operacional que gerencia o escalonamento das tarefas."""
@@ -19,8 +103,8 @@ class SO:
     nome_tipo_escalonador: str = "" # guarda o nome do tipo de escalonador usado atualmente
     tarefa_executando_anterior: Tarefa = None  # guarda a tarefa que estava executando no passo anterior
     fator_envelhecimento: int = 0  # fator de envelhecimento para escalonadores que o utilizam
-    list_controladores_io: 'IOControllerList' = None  # Lista de controladores de I/O
-    list_mutexes: 'MutexList' = None  # Lista de mutexes
+    list_controladores_io: IOControllerList = IOControllerList()  # Lista de controladores de I/O
+    list_mutexes: MutexList = MutexList()  # Lista de mutexes
     # configura o sistema operacional a partir de um arquivo de configuração
     def configurar_sistema(self, filepath: str) -> None:
         """Lê o arquivo de configuração e inicializa o sistema operacional."""
@@ -173,6 +257,7 @@ class SO:
             return False  # Todas as tarefas foram finalizadas
     
         self.executar_tarefas() # Executa a tarefa que está rodando
+        self.list_controladores_io.executar_ios() # Executa os controladores de I/O
         self.clock_sistema += 1 # Avança o clock
 
         if any(tarefa.executando for tarefa in self.filaTodasTarefas): # Incrementa o tempo de execução do quantum
@@ -225,119 +310,59 @@ class SO:
                 self.escalonador.escalonar() # chama o escalonador
             self.tempo_executando_atual = 0 # reseta o tempo de execução atual
 
-    def tratar_req_inicio_io(self, evento_io, tarefa) -> None:
+    def tratar_req_inicio_io(self, evento_io) -> None:
         """Trata a requisição de início de I/O."""
         tarefa = self.tarefa_executando_anterior
         if tarefa:
-            tarefa.bloquear()  # Bloqueia a tarefa
+            self.remover_tarefa_pronta(tarefa) # remove a tarefa da fila de prontas
+            tarefa.bloquear()  
             tarefa.evento_bloqueio_atual = evento_io
+            self.list_controladores_io.adicionar_controlador_io(controlador_io=IOController(
+                id=f"IO_{tarefa.id}_{evento_io.instante}",
+                duracao_acesso=evento_io.duracao,
+                tarefa=tarefa,
+                SO=self
+            ))
             self.tarefa_executando_anterior = None
 
-    def tratar_req_fim_io(self, evento_io, tarefa) -> None:
+    def tratar_req_fim_io(self, IOController) -> None:
         """Trata a requisição de fim de I/O."""
-        tarefa_desbloqueada = None
-        for tarefa in self.filaTodasTarefas:
-            if tarefa.bloqueada and tarefa.evento_bloqueio_atual == evento_io:
-                tarefa_desbloqueada = tarefa
-                break
+        tarefa_desbloqueada = IOController.tarefa
+        tarefa_desbloqueada.ficar_pronta()
+        tarefa_desbloqueada.evento_bloqueio_atual.estado = "concluído"
+        tarefa_desbloqueada.evento_bloqueio_atual = None
+        self.adicionar_tarefa_pronta(tarefa_desbloqueada)
+        self.ingresso_fila_prontas = True
+        self.list_controladores_io.remover_controlador_io(IOController.id)
 
-    def tratar_req_lock_mutex(self, evento_mutex, tarefa) -> None:
+    def tratar_req_mutex_lock(self, evento_mutex) -> None:
         """Trata a requisição de lock de mutex."""
 
         # Apenas bloqueia a tarefa
         tarefa = self.tarefa_executando_anterior
-        if tarefa:
-            tarefa.bloquear()
-            tarefa.evento_bloqueio_atual = evento_mutex
-            self.tarefa_executando_anterior = None
+        if evento_mutex.mutex_id and tarefa:
+            if self.list_mutexes.obter_mutex(evento_mutex.mutex_id) is None:
+                mutex_novo = Mutex(id=evento_mutex.mutex_id)
+                self.list_mutexes.adicionar_mutex(mutex_novo)
+            mutex_novo.lock(tarefa)
+            if tarefa.bloqueada:
+                evento_mutex.estado = "em andamento"
+                self.remover_tarefa_pronta(tarefa) # remove a tarefa da fila de prontas
+                tarefa.evento_bloqueio_atual = evento_mutex
+                self.tarefa_executando_anterior = None
 
-    def tratar_req_unlock_mutex(self, evento_mutex, tarefa) -> None:
+            else:
+                evento_mutex.estado = "concluído"
+
+    def tratar_req_mutex_unlock(self, evento_mutex) -> None:
         """Trata a requisição de unlock de mutex."""
-
-        # Encontra e desbloqueia a tarefa
-        for tarefa in self.filaTodasTarefas:
-            if tarefa.bloqueada and tarefa.evento_bloqueio_atual == evento_mutex:
-                tarefa.ficar_pronta()
-                tarefa.evento_bloqueio_atual = None
-                self.adicionar_tarefa_pronta(tarefa)
+        mutex = self.list_mutexes.obter_mutex(evento_mutex.mutex_id)
+        if mutex:
+            tarefa_desbloqueada = mutex.unlock()
+            if tarefa_desbloqueada:
+                tarefa_desbloqueada.ficar_pronta()
+                tarefa_desbloqueada.evento_bloqueio_atual.estado = "concluído"
+                tarefa_desbloqueada.evento_bloqueio_atual = None
+                self.adicionar_tarefa_pronta(tarefa_desbloqueada)
                 self.ingresso_fila_prontas = True
-                break
-
-class IOController:
-    """Controlador de dispositivos de I/O."""
-    id: str  # Identificador do controlador de I/O
-    duracao_acesso: int  # Duração do acesso ao dispositivo de I/O
-    tarefa: Tarefa  # Tarefa associada ao controlador de I/O
-    SO: SO  # Referência ao sistema operacional
-    def executar_io(self) -> None:
-        """Executa a operação de I/O."""
-        self.duracao_acesso -= 1  # Implementar a lógica de execução de I/O aqui
-        if self.duracao_acesso < 0:
-            self.IRQ()
-
-    def IRQ(self) -> None:
-        """Trata a requisição de I/O."""
-        self.SO.tratar_req_fim_io(self, self.tarefa)
-
-class IOControllerList:
-    """Controlador de lista de dispositivos de I/O."""
-    def __init__(self):
-        self.controladores_io = []
-
-    def adicionar_controlador_io(self, controlador_io: 'IOController', tarefa: 'Tarefa') -> None:
-        """Adiciona um controlador de I/O à lista."""
-        self.controladores_io.append(controlador_io)
-        controlador_io.tarefa = tarefa
-
-    def remover_controlador_io(self, id_controlador: str) -> None:
-        """Remove um controlador de I/O da lista pelo seu ID."""
-        self.controladores_io = [ctrl for ctrl in self.controladores_io if ctrl.id != id_controlador]
-
-    def obter_controlador_io(self, id_controlador: str) -> Union['IOController', None]:
-        """Obtém um controlador de I/O pelo seu ID."""
-        for ctrl in self.controladores_io:
-            if ctrl.id == id_controlador:
-                return ctrl
-        return None
-
-class Mutex:
-    """Representa um mutex para sincronização de tarefas."""
-    id: str  # Identificador do mutex
-    count: int = 1  # Contador de locks adquiridos
-    tarefas_bloqueadas: List[Tarefa] = None  # Lista de tarefas bloqueadas pelo mutex
-    def __post_init__(self):
-        self.tarefas_bloqueadas = []  # Inicializa a lista de tarefas bloqueadas
-    def lock(self, tarefa: Tarefa) -> None:
-        """Adquire o lock do mutex para a tarefa."""
-        if self.count > 0:
-            self.count -= 1
-        else:
-            self.tarefas_bloqueadas.append(tarefa)
-            tarefa.bloquear()
-    def unlock(self) -> Union[Tarefa, None]:
-        """Libera o lock do mutex e retorna a próxima tarefa bloqueada, se houver."""
-        if self.tarefas_bloqueadas:
-            tarefa_desbloqueada = self.tarefas_bloqueadas.pop(0)
-            return tarefa_desbloqueada
-        else:
-            self.count += 1
-            return None
-class MutexList:
-    """Controlador de lista de mutexes."""
-    def __init__(self):
-        self.mutexes = []
-
-    def adicionar_mutex(self, mutex: 'Mutex') -> None:
-        """Adiciona um mutex à lista."""
-        self.mutexes.append(mutex)
-
-    def remover_mutex(self, id_mutex: str) -> None:
-        """Remove um mutex da lista pelo seu ID."""
-        self.mutexes = [m for m in self.mutexes if m.id != id_mutex]
-
-    def obter_mutex(self, id_mutex: str) -> Union['Mutex', None]:
-        """Obtém um mutex pelo seu ID."""
-        for m in self.mutexes:
-            if m.id == id_mutex:
-                return m
-        return None
+        
