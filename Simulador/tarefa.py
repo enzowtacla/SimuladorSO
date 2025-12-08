@@ -43,6 +43,7 @@ class Tarefa:   #Contém as informações de cada tarefa
     def executar(self) -> None:
         if self.executando:
             for evento in self.eventos:
+                print(evento.instante, self.t_executado, evento.pendente)
                 if evento.instante == self.t_executado and evento.pendente:
                     evento.tratar_evento()
                     if self.bloqueada:
