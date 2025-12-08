@@ -225,43 +225,96 @@ class SO:
                 self.escalonador.escalonar() # chama o escalonador
             self.tempo_executando_atual = 0 # reseta o tempo de execução atual
 
-    def tratar_req_inicio_io(self, evento_io, tarefa) -> None:
+    def tratar_req_inicio_io(self, evento_io, tarefa=None) -> None:
         """Trata a requisição de início de I/O."""
-        tarefa = self.tarefa_executando_anterior
-        if tarefa:
-            tarefa.bloquear()  # Bloqueia a tarefa
-            tarefa.evento_bloqueio_atual = evento_io
-            self.tarefa_executando_anterior = None
+        # Se a tarefa não foi passada, assumimos que é a que estava executando na CPU
+        tarefa_alvo = tarefa if tarefa else self.tarefa_executando_anterior
+        
+        if tarefa_alvo:
+            tarefa_alvo.bloquear()  # Define o estado da tarefa como 'bloqueada'
+            tarefa_alvo.evento_bloqueio_atual = evento_io
+            
+            # Remove da fila de prontas para o escalonador não a selecionar novamente imediatamente
+            self.remover_tarefa_pronta(tarefa_alvo)
+            
+            # Se a tarefa bloqueada era a que estava executando, liberamos a referência
+            if self.tarefa_executando_anterior == tarefa_alvo:
+                self.tarefa_executando_anterior = None
 
-    def tratar_req_fim_io(self, evento_io, tarefa) -> None:
+    def tratar_req_fim_io(self, evento_io, tarefa=None) -> None:
         """Trata a requisição de fim de I/O."""
         tarefa_desbloqueada = None
-        for tarefa in self.filaTodasTarefas:
-            if tarefa.bloqueada and tarefa.evento_bloqueio_atual == evento_io:
-                tarefa_desbloqueada = tarefa
+        
+        # Procura na lista de tarefas qual está bloqueada por ESSE evento específico
+        for t in self.filaTodasTarefas:
+            if t.bloqueada and t.evento_bloqueio_atual == evento_io:
+                tarefa_desbloqueada = t
                 break
 
-    def tratar_req_lock_mutex(self, evento_mutex, tarefa) -> None:
-        """Trata a requisição de lock de mutex."""
+        if tarefa_desbloqueada:
+            tarefa_desbloqueada.ficar_pronta()  # Muda estado para 'pronta'
+            tarefa_desbloqueada.evento_bloqueio_atual = None
+            
+            # Devolve a tarefa para a fila de prontas para ser escalonada novamente
+            self.adicionar_tarefa_pronta(tarefa_desbloqueada)
+            
+            # Sinaliza que houve mudança na fila (importante para preempção)
+            self.ingresso_fila_prontas = True
 
-        # Apenas bloqueia a tarefa
-        tarefa = self.tarefa_executando_anterior
-        if tarefa:
-            tarefa.bloquear()
-            tarefa.evento_bloqueio_atual = evento_mutex
-            self.tarefa_executando_anterior = None
+    def tratar_req_lock_mutex(self, evento_mutex, tarefa=None) -> None:
+        """Trata a requisição de Lock (ML)."""
+        mid = evento_mutex.mutex_id
+        tarefa_atual = self.tarefa_executando_anterior
+        
+        if not tarefa_atual:
+            return
 
-    def tratar_req_unlock_mutex(self, evento_mutex, tarefa) -> None:
-        """Trata a requisição de unlock de mutex."""
+        # Se o mutex não existe, cria (assume livre)
+        if mid not in self.mutexes:
+            self.mutexes[mid] = None
+        
+        # Verifica se está livre ou se já é dono (lock recursivo opcional)
+        dono = self.mutexes[mid]
+        
+        if dono is None:
+            # LIVRE: Pega o mutex e continua executando
+            self.mutexes[mid] = tarefa_atual.id
+            # Não bloqueia a tarefa! Ela continua sua vida.
+        else:
+            # OCUPADO: Bloqueia a tarefa
+            if dono != tarefa_atual.id:
+                tarefa_atual.bloquear()
+                tarefa_atual.evento_bloqueio_atual = evento_mutex
+                self.remover_tarefa_pronta(tarefa_atual)
+                
+                if self.tarefa_executando_anterior == tarefa_atual:
+                    self.tarefa_executando_anterior = None
 
-        # Encontra e desbloqueia a tarefa
-        for tarefa in self.filaTodasTarefas:
-            if tarefa.bloqueada and tarefa.evento_bloqueio_atual == evento_mutex:
-                tarefa.ficar_pronta()
-                tarefa.evento_bloqueio_atual = None
-                self.adicionar_tarefa_pronta(tarefa)
-                self.ingresso_fila_prontas = True
-                break
+    def tratar_req_unlock_mutex(self, evento_mutex, tarefa=None) -> None:
+        """Trata a requisição de Unlock (MU)."""
+        mid = evento_mutex.mutex_id
+        tarefa_atual = self.tarefa_executando_anterior
+
+        # Libera o mutex se for o dono
+        if mid in self.mutexes and self.mutexes[mid] == tarefa_atual.id:
+            self.mutexes[mid] = None
+            
+            # ACORDA alguém que estava esperando (estratégia simples: acorda o primeiro que achar)
+            # Num projeto completo, você teria uma fila de espera por mutex.
+            # Aqui, vamos varrer as tarefas bloqueadas procurando quem quer esse mutex.
+            for t in self.filaTodasTarefas:
+                if t.bloqueada and t.evento_bloqueio_atual and t.evento_bloqueio_atual.tipo == "ML":
+                    if t.evento_bloqueio_atual.mutex_id == mid:
+                        # Achou alguém esperando este mutex!
+                        # Dá o mutex para ela (passagem direta de bastão) ou deixa livre para disputa
+                        # Vamos deixar livre e acordar a tarefa:
+                        t.ficar_pronta()
+                        t.evento_bloqueio_atual = None
+                        self.adicionar_tarefa_pronta(t)
+                        self.ingresso_fila_prontas = True
+                        
+                        # Se quiser garantir ordem FIFO estrita, atribua self.mutexes[mid] = t.id aqui
+                        break
 
 class IOController:
     """Controlador de dispositivos de I/O."""
