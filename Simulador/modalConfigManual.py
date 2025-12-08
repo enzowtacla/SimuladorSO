@@ -222,8 +222,8 @@ class ModalConfigManual(tk.Toplevel):
         """
         try:
 
-            if self.quantum.get() <= 0: # validação do quantum
-                return (False, "O Quantum deve ser maior que 0.")
+            if self.quantum.get() < 0: # validação do quantum
+                return (False, "O Quantum deve ser maior ou igual a 0.")
             
             if not self.tarefas: # verifica se tarefas foram adicionadas
                 messagebox.showwarning("Aviso", "Nenhuma tarefa foi adicionada. Salvando configuração vazia.")

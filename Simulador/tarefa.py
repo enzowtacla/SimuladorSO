@@ -13,7 +13,7 @@ class Tarefa:   #Contém as informações de cada tarefa
     eventos: List[Evento] # Lista de eventos na tarefa
     evento_bloqueio_atual: Evento = None  # Evento que causou o bloqueio atual
     estado: str = "aguardando" # Estado atual da tarefa: pronta, executando, bloqueada, finalizada
-
+    eventos_exec_agora: List[Evento] = None  # Eventos que estão sendo executados agora
     t_executado: int = 0  # Tempo já executado da tarefa
     t_restante: int = 0    # Tempo restante para ser executado
     t_bloqueado: int = 0    # Tempo que a tarefa está bloqueada
@@ -42,9 +42,10 @@ class Tarefa:   #Contém as informações de cada tarefa
     # se a tarefa está executando, realiza as seguintes operações
     def executar(self) -> None:
         if self.executando:
+            self.eventos_exec_agora = []  # limpa a lista de eventos que estão sendo executados agora
             for evento in self.eventos:
-                print(evento.instante, self.t_executado, evento.pendente)
                 if evento.instante == self.t_executado and evento.pendente:
+                    self.eventos_exec_agora.append(evento)
                     evento.tratar_evento()
                     if self.bloqueada:
                         return  

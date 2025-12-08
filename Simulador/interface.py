@@ -318,7 +318,10 @@ class Interface:
             line = f"ID: {tarefa.id} | Estado: {tarefa.estado} | Restante: {tarefa.t_restante} | Executado: {tarefa.t_executado}"
             line += f" | Prioridade Estática: {tarefa.prioridade_estatica} | Prioridade Dinâmica: {tarefa.prioridade_dinamica}"
             line += f" | Ingresso: {tarefa.ingresso} | Duração: {tarefa.duracao}"
-            
+
+            if tarefa.eventos_exec_agora:
+                eventos_str = ", ".join([f"{evento.tipo}" for evento in tarefa.eventos_exec_agora])
+                line += f" | Evento Executados no última unidade de execução: {eventos_str}"
             if tarefa.bloqueada:
                 motivo = "Desconhecido"
                 if hasattr(tarefa, 'evento_bloqueio_atual') and tarefa.evento_bloqueio_atual:
@@ -400,6 +403,11 @@ class Interface:
             elif tarefa.aguardando or tarefa.finalizada:
                     retorno_desenho = self.gantt_ax.plot(x_start + 0.5, i, 'o', color='#AAAAAA', markersize=2)
                     desenhos_agora.extend(retorno_desenho)
+            elif tarefa.bloqueada:
+                    container = self.gantt_ax.barh(i, width=1, left=x_start, height=0.7,
+                                     color='gray', edgecolor='black', alpha=0.5)
+                    for retangulo in container:
+                        desenhos_agora.append(retangulo)
             else:
                     container = self.gantt_ax.barh(i, width=1, left=x_start, height=0.7,
                                      color=COR_TAREFA_NAO_EXECUTANDO, edgecolor='black', alpha=0.3)

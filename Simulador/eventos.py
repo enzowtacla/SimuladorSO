@@ -54,8 +54,10 @@ class Evento:  # Contém as informações de cada evento
     @property
     def pendente(self) -> bool:
         return self.estado == "pendente"
+    @property
     def em_andamento(self) -> bool:
         return self.estado == "em andamento"
+    @property
     def concluido(self) -> bool:
         return self.estado == "concluído"
 

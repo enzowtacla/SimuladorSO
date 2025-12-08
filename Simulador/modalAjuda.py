@@ -66,7 +66,7 @@ class ModalAjuda(tk.Toplevel):
             "Algoritmos Válidos: \n", "code")
         for alg in lista_escalonadores:
             self.text_area.insert(tk.END, f"  {alg}\n", "code")
-        self.text_area.insert(tk.END, "Quantum: Um número inteiro (ex: 4). Usado apenas por algoritmos preemptivos.\n\n"
+        self.text_area.insert(tk.END, "Quantum: Um número inteiro (ex: 4). Usado apenas por algoritmos preemptivos. Se for 0, o sistema não usa quantum\n\n"
         )
         self.text_area.insert(tk.END, 
             "Se o algoritmo escolhido o com envelhecimento (ex: PRIOPEnv), o fator de envelhecimento deve ser adicionado na primeira linha.\n\n"
